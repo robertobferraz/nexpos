@@ -1,0 +1,114 @@
+basePath: /v1
+definitions:
+  dto.Base:
+    properties:
+      data: {}
+      error:
+        $ref: '#/definitions/dto.BaseError'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dto.BaseError:
+    properties:
+      code:
+        $ref: '#/definitions/errors.ErrorCode'
+      message:
+        type: string
+    type: object
+  dto.CreateUserInDto:
+    properties:
+      birth_date:
+        type: string
+      cpf:
+        type: string
+      email:
+        type: string
+      external_id:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+      phone_number:
+        type: string
+      username:
+        type: string
+    required:
+    - email
+    - name
+    - password
+    - phone_number
+    - username
+    type: object
+  dto.CreateUserOutDto:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  errors.ErrorCode:
+    enum:
+    - INVALID_INPUT
+    - USER_ALREADY_EXISTS
+    - INTERNAL_SERVER_ERROR
+    - UNAUTHORIZED
+    - FORBIDDEN
+    type: string
+    x-enum-varnames:
+    - ErrInvalidInput
+    - ErrUserAlreadyExists
+    - ErrInternalServer
+    - ErrUnauthorized
+    - ErrForbidden
+info:
+  contact:
+    email: contatorobertobff@gmail.com
+    name: Roberto Filho
+  description: Swagger API for Food Service.
+  termsOfService: http://swagger.io/terms/
+  title: Food Swagger API
+  version: "1.0"
+paths:
+  /auth/signup:
+    post:
+      consumes:
+      - application/json
+      description: Endpoint to register a new user
+      parameters:
+      - description: User registration input
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateUserInDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Base'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.CreateUserOutDto'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Base'
+      summary: Create a new user
+      tags:
+      - Auth
+securityDefinitions:
+  ApiKeyAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
