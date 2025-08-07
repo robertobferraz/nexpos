@@ -1,0 +1,33 @@
+name: Resumir novas issues
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  summary:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+      models: read
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Gerar resumo com IA
+        id: inference
+        uses: actions/ai-inference@v1
+        with:
+          prompt: |
+            Resuma a seguinte issue do GitHub em um parágrafo (em português brasileiro, tom profissional e conciso):
+            Título: ${{ github.event.issue.title }}
+            Corpo: ${{ github.event.issue.body }}
+
+      - name: Comentar com o resumo gerado
+        if: success()
+        run: |
+          gh issue comment ${{ github.event.issue.number }} --body "📝 **Resumo automático da issue**: ${{ steps.inference.outputs.response }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
