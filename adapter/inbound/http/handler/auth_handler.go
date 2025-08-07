@@ -1,16 +1,17 @@
 package handler
 
 import (
+	"strings"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
-	"github.com/robertobff/food-service/adapter/inbound/http/middleware"
-	"github.com/robertobff/food-service/application/dto"
-	"github.com/robertobff/food-service/application/usecase"
-	"github.com/robertobff/food-service/domain/errors"
-	"github.com/robertobff/food-service/utils"
+	"github.com/robertobff/nexpos/adapter/inbound/http/middleware"
+	"github.com/robertobff/nexpos/application/dto"
+	"github.com/robertobff/nexpos/application/usecase"
+	"github.com/robertobff/nexpos/domain/errors"
+	"github.com/robertobff/nexpos/utils"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
-	"strings"
 )
 
 var AuthHandlerModule = fx.Module(
@@ -41,8 +42,11 @@ func NewAuthHandler(
 }
 
 func (h *AuthHandler) RegisterRoutes(r fiber.Router) {
-	auth := r.Group("/auth")
-	auth.Post("signup", h.Signup)
+	noAuth := r.Group("/auth")
+	noAuth.Post("signup", h.Signup)
+
+	auth := r.Group("/auth", h.authMd.Require, h.userMd.CheckUser)
+	auth.Delete("disable/:id", h.Delete)
 }
 
 func formatValidationErrors(err error) string {
@@ -122,6 +126,32 @@ func (h *AuthHandler) Signup(c *fiber.Ctx) error {
 	})
 }
 
+// Delete godoc
+// @Summary Delete a user
+// @Description Endpoint to delete a user by ID
+// @Security ApiKeyAuth
+// @Tags Auth
+// @Produce json
+// @Param id path string true "User ID"
+// @Success 200 {object} dto.Base
+// @Failure 500 {object} dto.Base
+// @Router /auth/disable/{id} [delete]
 func (h *AuthHandler) Delete(c *fiber.Ctx) error {
-	return nil
+	id := c.Params("id")
+	err := h.uc.DeleteUser(c.Context(), &dto.DeleteUserInDto{ID: utils.PString(id)})
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(dto.Base{
+			Success: utils.PBool(false),
+			Error: &dto.BaseError{
+				Code:    errors.ErrInternalServer,
+				Message: utils.PString(err.Error()),
+			},
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(dto.Base{
+		Success: utils.PBool(true),
+		Error:   nil,
+		Message: utils.PString("user deleted successfully"),
+	})
 }

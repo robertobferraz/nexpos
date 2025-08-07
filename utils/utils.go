@@ -1,7 +1,10 @@
 package utils
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
+	"math/rand"
 	"strings"
 )
 
@@ -16,4 +19,12 @@ func ValidationBearerToken(token *string) (*string, error) {
 	}
 
 	return &x[1], nil
+}
+
+func CreateRandomUsername(name *string) *string {
+	var usernameBuffer bytes.Buffer
+	usernameBuffer.WriteString(strings.ToLower(strings.ReplaceAll(*name, " ", "_")))
+	usernameBuffer.WriteString(fmt.Sprintf(":%v", rand.Int31()))
+
+	return PString(usernameBuffer.String())
 }

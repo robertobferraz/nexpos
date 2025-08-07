@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/joho/godotenv"
-	"github.com/robertobff/food-service/adapter"
-	"github.com/robertobff/food-service/application"
-	"go.uber.org/fx"
 	"os"
 	"path/filepath"
 	"runtime"
+
+	"github.com/joho/godotenv"
+	"github.com/robertobff/nexpos/adapter"
+	"github.com/robertobff/nexpos/application"
+	"go.uber.org/fx"
 )
 
 func main() {

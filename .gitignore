@@ -13,5 +13,6 @@ tmp/
 script/
 .idea
 
+allCountries.txt
 .env
 .tool-versions

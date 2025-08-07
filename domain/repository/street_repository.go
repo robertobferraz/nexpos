@@ -2,8 +2,9 @@ package repository
 
 import (
 	"context"
-	"github.com/robertobff/food-service/domain/dto"
-	"github.com/robertobff/food-service/domain/entity"
+
+	"github.com/robertobff/nexpos/domain/dto"
+	"github.com/robertobff/nexpos/domain/entity"
 )
 
 type StreetRepository interface {

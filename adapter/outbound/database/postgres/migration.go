@@ -2,7 +2,7 @@ package postgres
 
 import (
 	"github.com/go-gormigrate/gormigrate/v2"
-	"github.com/robertobff/food-service/adapter/outbound/database/postgres/migration"
+	"github.com/robertobff/nexpos/adapter/outbound/database/postgres/migration"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 )

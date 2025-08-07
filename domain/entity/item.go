@@ -1,10 +1,11 @@
 package entity
 
 import (
-	"github.com/asaskevich/govalidator"
-	"github.com/robertobff/food-service/utils"
-	uuid "github.com/satori/go.uuid"
 	"time"
+
+	"github.com/asaskevich/govalidator"
+	"github.com/robertobff/nexpos/utils"
+	uuid "github.com/satori/go.uuid"
 )
 
 func init() {

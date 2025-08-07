@@ -4,6 +4,7 @@ type GormQuery struct {
 	Where      *[]GormWhere
 	Preload    *[]GormPreload
 	Debug      bool
+	Unscoped   bool
 	InnerJoins *[]GormInnerJoins
 	Group      *GormGroup
 	Model      *GormModel

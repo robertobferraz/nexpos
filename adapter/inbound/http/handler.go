@@ -2,7 +2,7 @@ package http
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/robertobff/food-service/adapter/inbound/http/handler"
+	"github.com/robertobff/nexpos/adapter/inbound/http/handler"
 	"go.uber.org/fx"
 )
 
@@ -11,13 +11,14 @@ var HandlerModule = fx.Module(
 	fx.Invoke(HandleRoutes),
 	handler.SwaggerHandlerModule,
 	handler.AuthHandlerModule,
+	handler.UserHandlerModule,
 )
 
 func HandleRoutes(
 	http *Http,
 	swaggerHandler *handler.SwaggerHandler,
 	authHandler *handler.AuthHandler,
-
+	userHandler *handler.UserHandler,
 ) {
 	http.App.Get("/", func(c *fiber.Ctx) error {
 		return c.Redirect("/v1/swagger/index.html")
@@ -26,4 +27,5 @@ func HandleRoutes(
 	v1 := http.App.Group("/v1")
 	swaggerHandler.RegisterRoutes(v1)
 	authHandler.RegisterRoutes(v1)
+	userHandler.RegisterRoutes(v1)
 }

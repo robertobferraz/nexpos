@@ -4,7 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/robertobff/food-service/domain/dto"
+
+	"github.com/robertobff/nexpos/domain/dto"
 
 	"gorm.io/gorm"
 )
@@ -44,6 +45,10 @@ func QueryConstructor(db *gorm.DB, query *dto.GormQuery) *gorm.DB {
 
 	if query.Debug {
 		db = db.Debug()
+	}
+
+	if query.Unscoped {
+		db = db.Unscoped()
 	}
 
 	return db

@@ -1,8 +1,8 @@
 package stripe
 
 import (
-	food "github.com/robertobff/food-service/adapter/connector/stripe"
-	"github.com/robertobff/food-service/domain/entity"
+	food "github.com/robertobff/nexpos/adapter/connector/stripe"
+	"github.com/robertobff/nexpos/domain/entity"
 	"github.com/stripe/stripe-go/v76"
 	"go.uber.org/fx"
 	"go.uber.org/zap"

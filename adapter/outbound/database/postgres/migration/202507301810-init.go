@@ -28,7 +28,6 @@ var M_202507301810 *gormigrate.Migration = func() *gormigrate.Migration {
 		Name        *string    `gorm:"column:name"`
 		Email       *string    `gorm:"column:email"`
 		Username    *string    `gorm:"column:username;unique"`
-		Password    *string    `gorm:"column:password"`
 		BirthDate   *time.Time `gorm:"column:birth_date"`
 		Cpf         *string    `gorm:"column:cpf;unique"`
 		PhoneNumber *string    `gorm:"column:phone_number"`

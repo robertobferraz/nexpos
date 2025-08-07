@@ -1,8 +1,9 @@
 package dto
 
 import (
-	"github.com/robertobff/food-service/domain/errors"
 	"time"
+
+	"github.com/robertobff/nexpos/domain/errors"
 )
 
 type Base struct {
@@ -29,6 +30,7 @@ type CreateUserInDto struct {
 }
 
 type CreateUserOutDto struct {
+	Base
 	ID    *string `json:"id"`
 	Name  *string `json:"name"`
 	Email *string `json:"email"`
@@ -38,6 +40,10 @@ type DeleteUserInDto struct {
 	ID *string `json:"id"`
 }
 
+type GetUserByUIDInDto struct {
+	UID *string `json:"uid"`
+}
+
 type CreateCategoryInDto struct {
 	Name        *string `json:"name"`
 	Description *string `json:"description"`
@@ -45,6 +51,7 @@ type CreateCategoryInDto struct {
 }
 
 type CreateCategoryOutDto struct {
+	Base
 	ID          *string `json:"id"`
 	Name        *string `json:"name"`
 	Description *string `json:"description"`

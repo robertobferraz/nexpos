@@ -1,7 +1,7 @@
 package inbound
 
 import (
-	"github.com/robertobff/food-service/adapter/inbound/http"
+	"github.com/robertobff/nexpos/adapter/inbound/http"
 	"go.uber.org/fx"
 )
 

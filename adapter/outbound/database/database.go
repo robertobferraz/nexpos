@@ -1,7 +1,7 @@
 package database
 
 import (
-	"github.com/robertobff/food-service/adapter/outbound/database/postgres"
+	"github.com/robertobff/nexpos/adapter/outbound/database/postgres"
 	"go.uber.org/fx"
 )
 

@@ -44,11 +44,43 @@ definitions:
     type: object
   dto.CreateUserOutDto:
     properties:
+      data: {}
       email:
+        type: string
+      error:
+        $ref: '#/definitions/dto.BaseError'
+      id:
+        type: string
+      message:
+        type: string
+      name:
+        type: string
+      success:
+        type: boolean
+    type: object
+  entity.User:
+    properties:
+      birth_date:
+        type: string
+      cpf:
+        type: string
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      email:
+        type: string
+      external_id:
         type: string
       id:
         type: string
       name:
+        type: string
+      phone_number:
+        type: string
+      updated_at:
+        type: string
+      username:
         type: string
     type: object
   errors.ErrorCode:
@@ -74,6 +106,31 @@ info:
   title: Food Swagger API
   version: "1.0"
 paths:
+  /auth/disable/{id}:
+    delete:
+      description: Endpoint to delete a user by ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.Base'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Base'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete a user
+      tags:
+      - Auth
   /auth/signup:
     post:
       consumes:
@@ -105,6 +162,34 @@ paths:
       summary: Create a new user
       tags:
       - Auth
+  /user:
+    get:
+      consumes:
+      - application/json
+      description: Returns a list of all users registered in the system
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Base'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/entity.User'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.BaseError'
+      security:
+      - ApiKeyAuth: []
+      summary: List all-users
+      tags:
+      - User
 securityDefinitions:
   ApiKeyAuth:
     description: Type "Bearer" followed by a space and JWT token.

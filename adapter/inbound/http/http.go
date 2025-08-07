@@ -6,7 +6,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	_ "github.com/robertobff/food-service/adapter/inbound/http/docs"
+	_ "github.com/robertobff/nexpos/adapter/inbound/http/docs"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 )

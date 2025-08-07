@@ -1,7 +1,7 @@
 package application
 
 import (
-	"github.com/robertobff/food-service/application/usecase"
+	"github.com/robertobff/nexpos/application/usecase"
 	"go.uber.org/fx"
 )
 

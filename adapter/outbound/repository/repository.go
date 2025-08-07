@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"github.com/robertobff/food-service/adapter/outbound/repository/src"
+	"github.com/robertobff/nexpos/adapter/outbound/repository/src"
 	"go.uber.org/fx"
 )
 

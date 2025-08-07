@@ -3,10 +3,11 @@ package src
 import (
 	"context"
 	"errors"
-	"github.com/robertobff/food-service/adapter/outbound/database/postgres"
-	"github.com/robertobff/food-service/domain/dto"
-	"github.com/robertobff/food-service/domain/entity"
-	"github.com/robertobff/food-service/domain/repository"
+
+	"github.com/robertobff/nexpos/adapter/outbound/database/postgres"
+	"github.com/robertobff/nexpos/domain/dto"
+	"github.com/robertobff/nexpos/domain/entity"
+	"github.com/robertobff/nexpos/domain/repository"
 	"gorm.io/gorm"
 
 	"go.uber.org/fx"
@@ -67,6 +68,11 @@ func (r *UserRepositorySrc) Find(ctx context.Context, query *dto.GormQuery) (*en
 			return nil, result.Error
 		}
 	}
+
+	if items.ID == nil {
+		return nil, nil
+	}
+
 	return &items, nil
 }
 

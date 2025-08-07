@@ -1,8 +1,8 @@
 package connector
 
 import (
-	"github.com/robertobff/food-service/adapter/connector/firebase"
-	"github.com/robertobff/food-service/adapter/connector/mercadopago"
+	"github.com/robertobff/nexpos/adapter/connector/firebase"
+	"github.com/robertobff/nexpos/adapter/connector/mercadopago"
 	"go.uber.org/fx"
 )
 

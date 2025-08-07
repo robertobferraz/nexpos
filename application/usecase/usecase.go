@@ -3,15 +3,17 @@ package usecase
 import (
 	"context"
 	"fmt"
-	"github.com/robertobff/food-service/adapter/outbound/auth"
-	"github.com/robertobff/food-service/application/dto"
-	dtoDomain "github.com/robertobff/food-service/domain/dto"
-	"github.com/robertobff/food-service/domain/entity"
-	"github.com/robertobff/food-service/domain/repository"
-	"github.com/robertobff/food-service/utils"
+	"github.com/robertobff/nexpos/adapter/outbound/scheduler"
+	"time"
+
+	"github.com/robertobff/nexpos/adapter/outbound/auth"
+	"github.com/robertobff/nexpos/application/dto"
+	dtoDomain "github.com/robertobff/nexpos/domain/dto"
+	"github.com/robertobff/nexpos/domain/entity"
+	"github.com/robertobff/nexpos/domain/repository"
+	"github.com/robertobff/nexpos/utils"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
-	"time"
 )
 
 var Module = fx.Module(
@@ -31,7 +33,8 @@ type Usecase struct {
 	cityRepo        repository.CityRepository
 	districtRepo    repository.DistrictRepository
 	streetRepo      repository.StreetRepository
-	fb              *auth.AuthFirebase
+	fb              *auth.Firebase
+	schedule        *scheduler.Scheduler
 	logger          *zap.SugaredLogger
 }
 
@@ -45,7 +48,8 @@ func NewUsecase(
 	cityRepo repository.CityRepository,
 	districtRepo repository.DistrictRepository,
 	streetRepo repository.StreetRepository,
-	fb *auth.AuthFirebase,
+	fb *auth.Firebase,
+	schedule *scheduler.Scheduler,
 	logger *zap.SugaredLogger,
 ) (*Usecase, error) {
 	return &Usecase{
@@ -59,51 +63,72 @@ func NewUsecase(
 		districtRepo:   districtRepo,
 		streetRepo:     streetRepo,
 		fb:             fb,
+		schedule:       schedule,
 		logger:         logger,
 	}, nil
 }
 
+// user
+
+func (u *Usecase) CreateUserIfNotExist(ctx context.Context, idto *dto.CreateUserInDto) (*dto.CreateUserOutDto, error) {
+	user, err := entity.NewUser(idto.Name, idto.Username, idto.Email, idto.Cpf, idto.PhoneNumber, nil, idto.ExternalID)
+	if err != nil {
+		u.logger.Errorw("error while creating user", "error: ", err)
+		return nil, err
+	}
+
+	err = u.userRepo.Create(ctx, user)
+	if err != nil {
+		u.logger.Errorw("error while creating user", "error: ", err)
+		return nil, err
+	}
+
+	response := &dto.CreateUserOutDto{
+		ID:    user.ID,
+		Name:  user.Name,
+		Email: user.Email,
+	}
+
+	return response, nil
+}
+
+func (u *Usecase) CheckUserDeletion(ctx context.Context, user *entity.User) error {
+	err := u.schedule.CancelUserDeletion(ctx, user.ID)
+	if err != nil {
+		u.logger.Errorw("error while canceling user", "error: ", err)
+		return err
+	}
+
+	return nil
+}
+
 func (u *Usecase) CreateUser(ctx context.Context, idto *dto.CreateUserInDto) (*dto.CreateUserOutDto, error) {
-	password, err := utils.CryptPassword(idto.Password)
-	if err != nil {
-		u.logger.Errorw("error while creating user", "error: ", err)
-		return nil, err
-	}
-
-	birthDate, err := time.Parse("2006-01-02", *idto.Birthdate)
-	if err != nil {
-		u.logger.Errorw("error while creating user", "error: ", err)
-		return nil, err
-	}
-
-	user := &entity.User{
-		Email:       idto.Email,
-		Username:    idto.Username,
-		Name:        idto.Name,
-		Password:    idto.Password,
-		PhoneNumber: idto.PhoneNumber,
-		BirthDate:   utils.PTime(birthDate),
-		Cpf:         idto.Cpf,
-		ExternalID:  nil,
-	}
-
-	existingUser, err := u.fb.GetUserByEmail(ctx, user.Email)
+	existingUser, err := u.fb.GetUserByEmail(ctx, idto.Email)
 	if err != nil {
 		u.logger.Error("Error verifying email: ", err)
 		return nil, err
 	}
 	if existingUser != nil {
-		u.logger.Info("Attempted registration with existing email address: ", *user.Email)
-		return nil, fmt.Errorf("email %s is already in use", *user.Email)
+		u.logger.Info("Attempted registration with existing email address: ", *idto.Email)
+		return nil, fmt.Errorf("email %s is already in use", *idto.Email)
 	}
 
-	userFire, err := u.fb.CreateUser(ctx, user)
+	var birthDate time.Time
+	if idto.Birthdate != nil {
+		birthDate, err = time.Parse("2006-01-02", *idto.Birthdate)
+		if err != nil {
+			u.logger.Errorw("error while creating user", "error: ", err)
+			return nil, err
+		}
+	}
+
+	userFire, err := u.fb.CreateUser(ctx, idto)
 	if err != nil {
 		u.logger.Errorw("Error creating user no firebase", "error", err)
 		return nil, err
 	}
 
-	user, err = entity.NewUser(user.Name, user.Username, user.Email, password, user.Cpf, idto.PhoneNumber, idto.Birthdate, userFire.ExternalID)
+	user, err := entity.NewUser(idto.Name, idto.Username, idto.Email, idto.Cpf, idto.PhoneNumber, utils.PString(birthDate.Format("2006-01-02")), userFire.ExternalID)
 	if err != nil {
 		u.logger.Errorw("error while creating user", "error: ", err)
 		return nil, err
@@ -144,18 +169,65 @@ func (u *Usecase) DeleteUser(ctx context.Context, idto *dto.DeleteUserInDto) err
 		return nil
 	}
 
-	err = u.userRepo.Delete(ctx, &dtoDomain.GormQuery{
+	if user.DeletedAt != nil {
+		u.logger.Warnw("user is deleted", "id", idto.ID)
+		return nil
+	}
+
+	user.DeletedAt = utils.PTime(time.Now())
+	err = u.userRepo.Save(ctx, user)
+	if err != nil {
+		u.logger.Errorw("error while deleting user", "error: ", err)
+		return err
+	}
+
+	err = u.schedule.ScheduleUserDeletion(ctx, user.ID, user.ExternalID)
+	if err != nil {
+		u.logger.Errorw("error while deleting user", "error: ", err)
+		return err
+	}
+
+	return nil
+}
+
+func (u *Usecase) GetUserByUID(ctx context.Context, idto *dto.GetUserByUIDInDto) (*entity.User, error) {
+	user, err := u.userRepo.Find(ctx, &dtoDomain.GormQuery{
 		Where: &[]dtoDomain.GormWhere{
 			{
-				Column:    "id",
+				Column:    "external_id",
 				Condition: "=",
-				Value:     user.ID,
+				Value:     idto.UID,
 			},
 		},
+		Unscoped: true,
 	})
 
 	if err != nil {
-		u.logger.Errorw("error while deleting user", "error: ", err)
+		u.logger.Errorw("error while getting user", "error: ", err)
+		return nil, err
+	}
+
+	if user == nil {
+		return nil, nil
+	}
+
+	return user, nil
+}
+
+func (u *Usecase) GetUsers(ctx context.Context) (*[]entity.User, error) {
+	users, err := u.userRepo.Get(ctx, &dtoDomain.GormQuery{})
+	if err != nil {
+		u.logger.Errorw("error while getting users", "error: ", err)
+		return nil, err
+	}
+
+	return users, nil
+}
+
+func (u *Usecase) SaveUser(ctx context.Context, user *entity.User) error {
+	err := u.userRepo.Save(ctx, user)
+	if err != nil {
+		u.logger.Errorw("error while saving user", "error: ", err)
 		return err
 	}
 

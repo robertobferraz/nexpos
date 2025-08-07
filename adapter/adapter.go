@@ -1,9 +1,9 @@
 package adapter
 
 import (
-	"github.com/robertobff/food-service/adapter/connector"
-	"github.com/robertobff/food-service/adapter/inbound"
-	"github.com/robertobff/food-service/adapter/outbound"
+	"github.com/robertobff/nexpos/adapter/connector"
+	"github.com/robertobff/nexpos/adapter/inbound"
+	"github.com/robertobff/nexpos/adapter/outbound"
 	"go.uber.org/fx"
 )
 

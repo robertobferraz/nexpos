@@ -1,6 +1,7 @@
 package firebase
 
 import (
+	"cloud.google.com/go/firestore"
 	"context"
 	"encoding/json"
 	"firebase.google.com/go/v4"
@@ -11,16 +12,17 @@ import (
 )
 
 var Module = fx.Module(
-	"auth",
+	"firebase_connector",
 	ConfigModule,
 	fx.Provide(NewFirebase),
 )
 
 type Firebase struct {
-	app    *firebase.App
-	client *auth.Client
-	ctx    context.Context
-	logger *zap.SugaredLogger
+	app             *firebase.App
+	client          *auth.Client
+	firestoreClient *firestore.Client
+	ctx             context.Context
+	logger          *zap.SugaredLogger
 }
 
 func NewFirebase(c *Config, logger *zap.SugaredLogger) (*Firebase, error) {
@@ -44,6 +46,12 @@ func NewFirebase(c *Config, logger *zap.SugaredLogger) (*Firebase, error) {
 		return nil, err
 	}
 
+	clientFirestore, err := app.Firestore(ctx)
+	if err != nil {
+		logger.Fatal(err)
+		return nil, err
+	}
+
 	client, err := app.Auth(ctx)
 	if err != nil {
 		logger.Errorf("failed to initialize Firebase auth client: %v", err)
@@ -51,11 +59,16 @@ func NewFirebase(c *Config, logger *zap.SugaredLogger) (*Firebase, error) {
 	}
 
 	return &Firebase{
-		app:    app,
-		client: client,
-		ctx:    ctx,
-		logger: logger,
+		app:             app,
+		client:          client,
+		firestoreClient: clientFirestore,
+		ctx:             ctx,
+		logger:          logger,
 	}, nil
+}
+
+func (f *Firebase) Firestore() *firestore.Client {
+	return f.firestoreClient
 }
 
 func (f *Firebase) Client() *auth.Client {

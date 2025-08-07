@@ -2,12 +2,13 @@ package middleware
 
 import (
 	"errors"
-	"github.com/robertobff/food-service/adapter/outbound/auth"
-	"github.com/robertobff/food-service/application/dto"
-	dErr "github.com/robertobff/food-service/domain/errors"
-	"github.com/robertobff/food-service/utils"
-	"go.uber.org/fx"
 	"strings"
+
+	"github.com/robertobff/nexpos/adapter/outbound/auth"
+	"github.com/robertobff/nexpos/application/dto"
+	dErr "github.com/robertobff/nexpos/domain/errors"
+	"github.com/robertobff/nexpos/utils"
+	"go.uber.org/fx"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/mitchellh/mapstructure"
@@ -19,17 +20,18 @@ var AuthMiddlewareModule = fx.Module(
 )
 
 type TokenClaims struct {
-	UserID  *string `mapstructure:"user_id"`
-	Name    *string `mapstructure:"name"`
-	Email   *string `mapstructure:"email"`
-	Picture *string `mapstructure:"picture"`
+	UserID      *string `mapstructure:"user_id"`
+	Name        *string `mapstructure:"name"`
+	Email       *string `mapstructure:"email"`
+	PhoneNumber *string `mapstructure:"phone_number"`
+	Picture     *string `mapstructure:"picture"`
 }
 
 type AuthMiddleware struct {
-	fbAuth *auth.AuthFirebase
+	fbAuth *auth.Firebase
 }
 
-func NewAuthMiddleware(fbAuth *auth.AuthFirebase) *AuthMiddleware {
+func NewAuthMiddleware(fbAuth *auth.Firebase) *AuthMiddleware {
 	return &AuthMiddleware{
 		fbAuth: fbAuth,
 	}

@@ -3,12 +3,13 @@ package entity
 import (
 	"errors"
 	"fmt"
-	"github.com/asaskevich/govalidator"
-	"github.com/robertobff/food-service/utils"
-	uuid "github.com/satori/go.uuid"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/asaskevich/govalidator"
+	"github.com/robertobff/nexpos/utils"
+	uuid "github.com/satori/go.uuid"
 )
 
 func init() {
@@ -28,14 +29,13 @@ type User struct {
 	Email       *string    `json:"email" valid:"email,required~Email is invalid or missing"`
 	Username    *string    `json:"username" valid:"required"`
 	Name        *string    `json:"name" valid:"required~Name is missing,stringlength(2|50)~Name must be 2-50 characters"`
-	Password    *string    `json:"password" valid:"required~Password is missing,password_strength~Password must be at least 8 characters with letters and numbers"`
 	PhoneNumber *string    `json:"phone_number" valid:"phone~Invalid phone number format,optional"`
 	BirthDate   *time.Time `json:"birth_date" valid:"-"`
 	Cpf         *string    `json:"cpf" valid:"-"`
 	ExternalID  *string    `json:"external_id" valid:"-"`
 }
 
-func NewUser(name, username, email, password, cpf, phoneNumber *string, birthdate *string, externalID *string) (*User, error) {
+func NewUser(name, username, email, cpf, phoneNumber *string, birthdate *string, externalID *string) (*User, error) {
 	if cpf != nil {
 		isValid := utils.CpfValidator(*cpf)
 		if !isValid {
@@ -52,7 +52,6 @@ func NewUser(name, username, email, password, cpf, phoneNumber *string, birthdat
 		Name:        name,
 		Username:    username,
 		Email:       email,
-		Password:    password,
 		BirthDate:   utils.PTime(bDate),
 		Cpf:         cpf,
 		PhoneNumber: phoneNumber,
