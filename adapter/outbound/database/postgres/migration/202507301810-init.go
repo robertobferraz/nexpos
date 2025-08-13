@@ -4,6 +4,8 @@ import (
 	"time"
 
 	"github.com/go-gormigrate/gormigrate/v2"
+	"github.com/robertobff/nexpos/utils"
+	uuid "github.com/satori/go.uuid"
 	"gorm.io/gorm"
 )
 
@@ -23,12 +25,20 @@ var M_202507301810 *gormigrate.Migration = func() *gormigrate.Migration {
 		BaseTimestamps
 	}
 
+	type Image struct {
+		Base
+		Name        *string `gorm:"column:name"`
+		Data        *[]byte `gorm:"column:data;type:bytea"`
+		ContentType *string `gorm:"column:content_type"`
+	}
+
 	type User struct {
 		Base
 		Name        *string    `gorm:"column:name"`
 		Email       *string    `gorm:"column:email"`
 		Username    *string    `gorm:"column:username;unique"`
 		BirthDate   *time.Time `gorm:"column:birth_date"`
+		ImageID     *string    `gorm:"column:image_id;type:uuid"`
 		Cpf         *string    `gorm:"column:cpf;unique"`
 		PhoneNumber *string    `gorm:"column:phone_number"`
 		ExternalID  *string    `gorm:"column:external_id;unique"`
@@ -38,7 +48,7 @@ var M_202507301810 *gormigrate.Migration = func() *gormigrate.Migration {
 		Base
 		Name        *string  `gorm:"column:name"`
 		Description *string  `gorm:"column:description"`
-		Image       *string  `gorm:"column:image"`
+		ImageID     *string  `gorm:"column:image_id;type:uuid"`
 		Price       *float64 `gorm:"column:price"`
 		CategoryID  *string  `gorm:"column:category_id;type:uuid"`
 	}
@@ -82,8 +92,8 @@ var M_202507301810 *gormigrate.Migration = func() *gormigrate.Migration {
 	type Street struct {
 		Base
 		Name       *string `gorm:"column:name"`
-		ZipCode    *string `gorm:"column:zip_code;type:uuid"`
-		Number     *string `gorm:"column:number;type:uuid"`
+		ZipCode    *string `gorm:"column:zip_code"`
+		Number     *string `gorm:"column:number"`
 		DistrictID *string `gorm:"column:district_id;type:uuid"`
 	}
 
@@ -103,7 +113,7 @@ var M_202507301810 *gormigrate.Migration = func() *gormigrate.Migration {
 		Base
 		Name        *string `gorm:"column:name"`
 		Description *string `gorm:"column:description"`
-		Image       *string `gorm:"column:image"`
+		ImageID     *string `gorm:"column:image_id;type:uuid"`
 	}
 
 	type Discount struct {
@@ -120,6 +130,7 @@ var M_202507301810 *gormigrate.Migration = func() *gormigrate.Migration {
 			return db.Transaction(
 				func(tx *gorm.DB) error {
 					if err := tx.AutoMigrate(
+						&Image{},
 						&User{},
 						&Item{},
 						&UserOrders{},
@@ -134,13 +145,29 @@ var M_202507301810 *gormigrate.Migration = func() *gormigrate.Migration {
 					); err != nil {
 						return err
 					}
-
+					{
+						if err := tx.Create(&Country{
+							Base: Base{
+								BaseID: BaseID{
+									ID: utils.PString(uuid.NewV4().String()),
+								},
+								BaseTimestamps: BaseTimestamps{
+									CreatedAt: utils.PTime(time.Now()),
+								},
+							},
+							Name:       utils.PString("Brasil"),
+							Identifier: utils.PString("BR"),
+						}).Error; err != nil {
+							return err
+						}
+					}
 					return nil
 				},
 			)
 		},
 		Rollback: func(db *gorm.DB) error {
 			return db.Migrator().DropTable(
+				&Image{},
 				&User{},
 				&Item{},
 				&UserOrders{},

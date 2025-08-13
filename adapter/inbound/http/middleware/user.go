@@ -51,7 +51,7 @@ func (m *UserMiddleware) CheckUser(c *fiber.Ctx) error {
 	}
 
 	if user == nil {
-		_, err = m.userUc.CreateUserIfNotExist(
+		u, err := m.userUc.CreateUserIfNotExist(
 			c.Context(),
 			&dto.CreateUserInDto{
 				Username:    utils.CreateRandomUsername(tokenClaims.Name),
@@ -71,10 +71,11 @@ func (m *UserMiddleware) CheckUser(c *fiber.Ctx) error {
 				},
 			})
 		}
+		c.Locals("userID", u.ID)
 	} else {
 		if user.DeletedAt != nil {
 			user.DeletedAt = nil
-			err = m.userUc.SaveUser(c.Context(), user)
+			err = m.userUc.SaveUserInAuth(c.Context(), user)
 			if err != nil {
 				return c.Status(fiber.StatusInternalServerError).JSON(dto.Base{
 					Success: utils.PBool(false),
@@ -96,6 +97,7 @@ func (m *UserMiddleware) CheckUser(c *fiber.Ctx) error {
 				})
 			}
 		}
+		c.Locals("userID", user.ID)
 	}
 
 	return c.Next()

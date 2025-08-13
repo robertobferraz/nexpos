@@ -11,7 +11,9 @@ var HandlerModule = fx.Module(
 	fx.Invoke(HandleRoutes),
 	handler.SwaggerHandlerModule,
 	handler.AuthHandlerModule,
+	handler.CategoryHandlerModule,
 	handler.UserHandlerModule,
+	handler.ImageHandlerModule,
 )
 
 func HandleRoutes(
@@ -19,6 +21,8 @@ func HandleRoutes(
 	swaggerHandler *handler.SwaggerHandler,
 	authHandler *handler.AuthHandler,
 	userHandler *handler.UserHandler,
+	imageHandler *handler.ImageHandler,
+	categoryHandler *handler.CategoryHandler,
 ) {
 	http.App.Get("/", func(c *fiber.Ctx) error {
 		return c.Redirect("/v1/swagger/index.html")
@@ -28,4 +32,6 @@ func HandleRoutes(
 	swaggerHandler.RegisterRoutes(v1)
 	authHandler.RegisterRoutes(v1)
 	userHandler.RegisterRoutes(v1)
+	imageHandler.RegisterRoutes(v1)
+	categoryHandler.RegisterRoutes(v1)
 }

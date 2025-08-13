@@ -16,13 +16,20 @@ type Category struct {
 	Base        `json:",inline" valid:"-"`
 	Name        *string `json:"name" valid:"-"`
 	Description *string `json:"description" valid:"-"`
-	Image       *string `json:"image" valid:"-"`
+	ImageID     *string `json:"-" valid:"-"`
+	Image       *Image  `json:"image" valid:"-"`
 }
 
-func NewCategory(name, description, image *string) (*Category, error) {
+func NewCategory(name, description *string, image *Image) (*Category, error) {
+	var imgID *string
+	if image != nil {
+		imgID = image.ID
+	}
+
 	category := &Category{
 		Name:        name,
 		Description: description,
+		ImageID:     imgID,
 		Image:       image,
 	}
 

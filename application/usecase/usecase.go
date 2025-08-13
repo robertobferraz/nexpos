@@ -2,11 +2,12 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"github.com/robertobff/nexpos/adapter/outbound/scheduler"
 	"time"
 
 	"github.com/robertobff/nexpos/adapter/outbound/auth"
+	"github.com/robertobff/nexpos/adapter/outbound/scheduler"
 	"github.com/robertobff/nexpos/application/dto"
 	dtoDomain "github.com/robertobff/nexpos/domain/dto"
 	"github.com/robertobff/nexpos/domain/entity"
@@ -33,6 +34,7 @@ type Usecase struct {
 	cityRepo        repository.CityRepository
 	districtRepo    repository.DistrictRepository
 	streetRepo      repository.StreetRepository
+	imageRepo       repository.ImageRepository
 	fb              *auth.Firebase
 	schedule        *scheduler.Scheduler
 	logger          *zap.SugaredLogger
@@ -48,6 +50,7 @@ func NewUsecase(
 	cityRepo repository.CityRepository,
 	districtRepo repository.DistrictRepository,
 	streetRepo repository.StreetRepository,
+	imageRepo repository.ImageRepository,
 	fb *auth.Firebase,
 	schedule *scheduler.Scheduler,
 	logger *zap.SugaredLogger,
@@ -62,16 +65,15 @@ func NewUsecase(
 		cityRepo:       cityRepo,
 		districtRepo:   districtRepo,
 		streetRepo:     streetRepo,
+		imageRepo:      imageRepo,
 		fb:             fb,
 		schedule:       schedule,
 		logger:         logger,
 	}, nil
 }
 
-// user
-
-func (u *Usecase) CreateUserIfNotExist(ctx context.Context, idto *dto.CreateUserInDto) (*dto.CreateUserOutDto, error) {
-	user, err := entity.NewUser(idto.Name, idto.Username, idto.Email, idto.Cpf, idto.PhoneNumber, nil, idto.ExternalID)
+func (u *Usecase) CreateUserIfNotExist(ctx context.Context, idto *dto.CreateUserInDto) (*entity.User, error) {
+	user, err := entity.NewUser(idto.Name, idto.Username, idto.Email, idto.Cpf, idto.PhoneNumber, nil, idto.ExternalID, nil)
 	if err != nil {
 		u.logger.Errorw("error while creating user", "error: ", err)
 		return nil, err
@@ -83,13 +85,7 @@ func (u *Usecase) CreateUserIfNotExist(ctx context.Context, idto *dto.CreateUser
 		return nil, err
 	}
 
-	response := &dto.CreateUserOutDto{
-		ID:    user.ID,
-		Name:  user.Name,
-		Email: user.Email,
-	}
-
-	return response, nil
+	return user, nil
 }
 
 func (u *Usecase) CheckUserDeletion(ctx context.Context, user *entity.User) error {
@@ -102,14 +98,14 @@ func (u *Usecase) CheckUserDeletion(ctx context.Context, user *entity.User) erro
 	return nil
 }
 
-func (u *Usecase) CreateUser(ctx context.Context, idto *dto.CreateUserInDto) (*dto.CreateUserOutDto, error) {
+func (u *Usecase) CreateUser(ctx context.Context, idto *dto.CreateUserInDto) (*entity.User, error) {
 	existingUser, err := u.fb.GetUserByEmail(ctx, idto.Email)
 	if err != nil {
-		u.logger.Error("Error verifying email: ", err)
+		u.logger.Error("error verifying email: ", err)
 		return nil, err
 	}
 	if existingUser != nil {
-		u.logger.Info("Attempted registration with existing email address: ", *idto.Email)
+		u.logger.Info("attempted registration with existing email address: ", *idto.Email)
 		return nil, fmt.Errorf("email %s is already in use", *idto.Email)
 	}
 
@@ -124,11 +120,11 @@ func (u *Usecase) CreateUser(ctx context.Context, idto *dto.CreateUserInDto) (*d
 
 	userFire, err := u.fb.CreateUser(ctx, idto)
 	if err != nil {
-		u.logger.Errorw("Error creating user no firebase", "error", err)
+		u.logger.Errorw("error creating user on firebase", "error", err)
 		return nil, err
 	}
 
-	user, err := entity.NewUser(idto.Name, idto.Username, idto.Email, idto.Cpf, idto.PhoneNumber, utils.PString(birthDate.Format("2006-01-02")), userFire.ExternalID)
+	user, err := entity.NewUser(idto.Name, idto.Username, idto.Email, idto.Cpf, idto.PhoneNumber, utils.PString(birthDate.Format("2006-01-02")), userFire.ExternalID, nil)
 	if err != nil {
 		u.logger.Errorw("error while creating user", "error: ", err)
 		return nil, err
@@ -140,13 +136,7 @@ func (u *Usecase) CreateUser(ctx context.Context, idto *dto.CreateUserInDto) (*d
 		return nil, err
 	}
 
-	response := &dto.CreateUserOutDto{
-		ID:    user.ID,
-		Name:  user.Name,
-		Email: user.Email,
-	}
-
-	return response, nil
+	return user, nil
 }
 
 func (u *Usecase) DeleteUser(ctx context.Context, idto *dto.DeleteUserInDto) error {
@@ -190,6 +180,116 @@ func (u *Usecase) DeleteUser(ctx context.Context, idto *dto.DeleteUserInDto) err
 	return nil
 }
 
+func (u *Usecase) SaveUser(ctx context.Context, idto *dto.SaveUserInDto) (*entity.User, error) {
+	user, err := u.userRepo.Find(ctx, &dtoDomain.GormQuery{
+		Where: &[]dtoDomain.GormWhere{
+			{
+				Column:    "id",
+				Condition: "=",
+				Value:     idto.ID,
+			},
+		},
+	})
+
+	if err != nil {
+		u.logger.Errorw("error while saving user", "error: ", err)
+		return nil, err
+	}
+
+	if user == nil {
+		u.logger.Warnw("user not found", "id", idto.ID)
+		return nil, errors.New("user not found")
+	}
+
+	if idto.Username != nil {
+		if err := user.SetUsername(idto.Username); err != nil {
+			u.logger.Errorw("error while saving user", "error: ", err)
+			return nil, err
+		}
+	}
+
+	if idto.Name != nil {
+		if err := user.SetName(idto.Name); err != nil {
+			u.logger.Errorw("error while saving user", "error: ", err)
+			return nil, err
+		}
+	}
+
+	if idto.Birthdate != nil {
+		if err := user.SetBirthDate(idto.Birthdate); err != nil {
+			u.logger.Errorw("error while saving user", "error: ", err)
+			return nil, err
+		}
+	}
+
+	if idto.PhoneNumber != nil {
+		if err := user.SetPhoneNumber(idto.PhoneNumber); err != nil {
+			u.logger.Errorw("error while saving user", "error: ", err)
+			return nil, err
+		}
+	}
+
+	if idto.Image != nil {
+		img, err := entity.NewImage(idto.Image.Name, idto.Image.ContentType, idto.Image.Data)
+		if err != nil {
+			u.logger.Errorw("error while saving user", "error: ", err)
+			return nil, err
+		}
+
+		if err := user.SetImage(img); err != nil {
+			u.logger.Errorw("error while saving user", "error: ", err)
+			return nil, err
+		}
+	}
+
+	if idto.Email != nil {
+		if err := user.SetEmail(idto.Email); err != nil {
+			u.logger.Errorw("error while saving user", "error: ", err)
+			return nil, err
+		}
+	}
+
+	err = u.userRepo.Save(ctx, user)
+	if err != nil {
+		u.logger.Errorw("error while saving user", "error: ", err)
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (u *Usecase) SaveUserInAuth(ctx context.Context, user *entity.User) error {
+	err := u.userRepo.Save(ctx, user)
+	if err != nil {
+		u.logger.Errorw("error while saving user", "error: ", err)
+		return err
+	}
+
+	return nil
+}
+
+func (u *Usecase) GetImage(ctx context.Context, id *string) ([]byte, *string, error) {
+	image, err := u.imageRepo.Find(ctx, &dtoDomain.GormQuery{
+		Where: &[]dtoDomain.GormWhere{
+			{
+				Column:    "id",
+				Condition: "=",
+				Value:     id,
+			},
+		},
+	})
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if image == nil {
+		return nil, nil, errors.New("user not found")
+	}
+
+	return *image.Data, image.ContentType, nil
+}
+
 func (u *Usecase) GetUserByUID(ctx context.Context, idto *dto.GetUserByUIDInDto) (*entity.User, error) {
 	user, err := u.userRepo.Find(ctx, &dtoDomain.GormQuery{
 		Where: &[]dtoDomain.GormWhere{
@@ -214,28 +314,52 @@ func (u *Usecase) GetUserByUID(ctx context.Context, idto *dto.GetUserByUIDInDto)
 	return user, nil
 }
 
-func (u *Usecase) GetUsers(ctx context.Context) (*[]entity.User, error) {
-	users, err := u.userRepo.Get(ctx, &dtoDomain.GormQuery{})
+func (u *Usecase) GetUsers(ctx context.Context, idto *dto.GetUsersInDto) (*[]dto.GetUsersOutDto, error) {
+	users, err := u.userRepo.Get(ctx, &dtoDomain.GormQuery{
+		Preload: &[]dtoDomain.GormPreload{{
+			Field: "Image",
+		}},
+	})
 	if err != nil {
 		u.logger.Errorw("error while getting users", "error: ", err)
 		return nil, err
 	}
 
-	return users, nil
-}
+	var resp []dto.GetUsersOutDto
+	for _, value := range *users {
+		var user dto.GetUsersOutDto
+		if value.Image != nil {
+			user.Image = &dto.Image{
+				Name:        value.Image.Name,
+				Url:         utils.PString(fmt.Sprintf("%s://%s/v1/image/%s", *idto.Protocol, *idto.HostName, *value.ImageID)),
+				ContentType: value.Image.ContentType,
+			}
+		}
+		user.ID = value.ID
+		user.Name = value.Name
+		user.Email = value.Email
+		user.Birthdate = value.BirthDate
+		user.PhoneNumber = value.PhoneNumber
+		user.Username = value.Username
 
-func (u *Usecase) SaveUser(ctx context.Context, user *entity.User) error {
-	err := u.userRepo.Save(ctx, user)
-	if err != nil {
-		u.logger.Errorw("error while saving user", "error: ", err)
-		return err
+		resp = append(resp, user)
 	}
 
-	return nil
+	return &resp, nil
 }
 
-func (u *Usecase) CreateCategory(ctx context.Context, idto *dto.CreateCategoryInDto) (*dto.CreateCategoryOutDto, error) {
-	category, err := entity.NewCategory(idto.Name, idto.Description, idto.Image)
+func (u *Usecase) CreateCategory(ctx context.Context, idto *dto.CreateCategoryInDto) (*entity.Category, error) {
+	var image *entity.Image
+	var err error
+	if idto.Image != nil {
+		image, err = entity.NewImage(idto.Image.Name, idto.Image.ContentType, idto.Image.Data)
+		if err != nil {
+			u.logger.Errorw("error while creating category", "error: ", err)
+			return nil, err
+		}
+	}
+
+	category, err := entity.NewCategory(idto.Name, idto.Description, image)
 	if err != nil {
 		u.logger.Errorw("error while creating category", "error: ", err)
 		return nil, err
@@ -247,14 +371,7 @@ func (u *Usecase) CreateCategory(ctx context.Context, idto *dto.CreateCategoryIn
 		return nil, err
 	}
 
-	response := &dto.CreateCategoryOutDto{
-		ID:          category.ID,
-		Name:        category.Name,
-		Description: category.Description,
-		Image:       category.Image,
-	}
-
-	return response, nil
+	return category, nil
 }
 
 func (u *Usecase) DeleteCategory(ctx context.Context, idto *dto.DeleteCategoryInDto) error {
@@ -295,7 +412,7 @@ func (u *Usecase) DeleteCategory(ctx context.Context, idto *dto.DeleteCategoryIn
 	return nil
 }
 
-func (u *Usecase) CreateItem(ctx context.Context, idto *dto.CreateItemInDto) (*dto.CreateItemOutDto, error) {
+func (u *Usecase) CreateItem(ctx context.Context, idto *dto.CreateItemInDto) (*entity.Item, error) {
 	category, err := u.categoryRepo.Find(ctx, &dtoDomain.GormQuery{
 		Where: &[]dtoDomain.GormWhere{
 			{
@@ -316,7 +433,16 @@ func (u *Usecase) CreateItem(ctx context.Context, idto *dto.CreateItemInDto) (*d
 		return nil, nil
 	}
 
-	item, err := entity.NewItem(idto.Name, idto.Description, idto.Image, idto.Price, category)
+	var image *entity.Image
+	if idto.Image != nil {
+		image, err = entity.NewImage(idto.Image.Name, idto.Image.ContentType, idto.Image.Data)
+		if err != nil {
+			u.logger.Errorw("error while creating category", "error: ", err)
+			return nil, err
+		}
+	}
+
+	item, err := entity.NewItem(idto.Name, idto.Description, idto.Price, category, image)
 	if err != nil {
 		u.logger.Errorw("error while creating item", "error: ", err)
 		return nil, err
@@ -328,22 +454,7 @@ func (u *Usecase) CreateItem(ctx context.Context, idto *dto.CreateItemInDto) (*d
 		return nil, err
 	}
 
-	categoryDto := &dto.CreateCategoryOutDto{
-		ID:          category.ID,
-		Name:        category.Name,
-		Description: category.Description,
-		Image:       category.Image,
-	}
-
-	response := &dto.CreateItemOutDto{
-		ID:          item.ID,
-		Name:        item.Name,
-		Description: item.Description,
-		Image:       item.Image,
-		Category:    categoryDto,
-	}
-
-	return response, nil
+	return item, nil
 }
 
 func (u *Usecase) DeleteItem(ctx context.Context, idto *dto.DeleteItemInDto) error {
@@ -385,7 +496,7 @@ func (u *Usecase) DeleteItem(ctx context.Context, idto *dto.DeleteItemInDto) err
 	return nil
 }
 
-func (u *Usecase) CreateDiscount(ctx context.Context, idto *dto.CreateDiscountInDto) (*dto.CreateDiscountOutDto, error) {
+func (u *Usecase) CreateDiscount(ctx context.Context, idto *dto.CreateDiscountInDto) (*entity.Discount, error) {
 	category := &entity.Category{}
 	item := &entity.Item{}
 	var err error
@@ -427,29 +538,7 @@ func (u *Usecase) CreateDiscount(ctx context.Context, idto *dto.CreateDiscountIn
 		return nil, err
 	}
 
-	itemDto := &dto.CreateItemOutDto{
-		ID:          item.ID,
-		Name:        item.Name,
-		Description: item.Description,
-		Image:       item.Image,
-	}
-
-	categoryDto := &dto.CreateCategoryOutDto{
-		ID:          category.ID,
-		Name:        category.Name,
-		Description: category.Description,
-		Image:       category.Image,
-	}
-
-	response := &dto.CreateDiscountOutDto{
-		ID:       discount.ID,
-		Item:     itemDto,
-		Category: categoryDto,
-		Value:    discount.Value,
-		Date:     discount.Date,
-	}
-
-	return response, nil
+	return discount, nil
 }
 
 func (u *Usecase) DeleteDiscount(ctx context.Context, idto *dto.DeleteDiscountInDto) error {
@@ -489,4 +578,187 @@ func (u *Usecase) DeleteDiscount(ctx context.Context, idto *dto.DeleteDiscountIn
 	}
 
 	return nil
+}
+
+func (u *Usecase) CreateCountry(ctx context.Context, idto *dto.CreateCountryInDto) error {
+	country, err := entity.NewCountry(idto.Name, idto.Identifier)
+	if err != nil {
+		u.logger.Errorw("error while creating country", "error: ", err)
+		return err
+	}
+
+	err = u.countryRepo.Create(ctx, country)
+	if err != nil {
+		u.logger.Errorw("error while creating country", "error: ", err)
+		return err
+	}
+
+	return nil
+}
+
+func (u *Usecase) CreateState(ctx context.Context, idto *dto.CreateStateInDto) error {
+	country, err := u.countryRepo.Find(ctx, &dtoDomain.GormQuery{
+		Where: &[]dtoDomain.GormWhere{
+			{
+				Column:    "id",
+				Condition: "=",
+				Value:     idto.CountryID,
+			},
+		},
+	})
+	if err != nil {
+		u.logger.Errorw("error while creating state", "error: ", err)
+		return err
+	}
+
+	if country == nil {
+		u.logger.Warnw("country not found", "id", idto.CountryID)
+		return errors.New("country not found")
+	}
+
+	state, err := entity.NewState(idto.Name, idto.Identifier, country)
+	if err != nil {
+		u.logger.Errorw("error while creating state", "error: ", err)
+		return err
+	}
+
+	err = u.stateRepo.Create(ctx, state)
+	if err != nil {
+		u.logger.Errorw("error while creating state", "error: ", err)
+		return err
+	}
+
+	return nil
+}
+
+func (u *Usecase) CreateCity(ctx context.Context, idto *dto.CreateCityInDto) error {
+	state, err := u.stateRepo.Find(ctx, &dtoDomain.GormQuery{
+		Where: &[]dtoDomain.GormWhere{
+			{
+				Column:    "id",
+				Condition: "=",
+				Value:     idto.StateID,
+			},
+		},
+	})
+
+	if err != nil {
+		u.logger.Errorw("error while creating city", "error: ", err)
+		return err
+	}
+
+	if state == nil {
+		u.logger.Warnw("state not found", "id", idto.StateID)
+		return errors.New("state not found")
+	}
+
+	city, err := entity.NewCity(idto.Name, state)
+	if err != nil {
+		u.logger.Errorw("error while creating city", "error: ", err)
+		return err
+	}
+
+	err = u.cityRepo.Create(ctx, city)
+	if err != nil {
+		u.logger.Errorw("error while creating city", "error: ", err)
+		return err
+	}
+
+	return nil
+}
+
+func (u *Usecase) CreteDistrict(ctx context.Context, idto *dto.CreateDistrictInDto) error {
+	city, err := u.cityRepo.Find(ctx, &dtoDomain.GormQuery{
+		Where: &[]dtoDomain.GormWhere{
+			{
+				Column:    "id",
+				Condition: "=",
+				Value:     idto.CityID,
+			},
+		},
+	})
+
+	if err != nil {
+		u.logger.Errorw("error while creating district", "error: ", err)
+		return err
+	}
+
+	if city == nil {
+		u.logger.Warnw("city not found", "id", idto.CityID)
+		return errors.New("city not found")
+	}
+
+	district, err := entity.NewDistrict(idto.Name, city)
+	if err != nil {
+		u.logger.Errorw("error while creating district", "error: ", err)
+		return err
+	}
+
+	err = u.districtRepo.Create(ctx, district)
+	if err != nil {
+		u.logger.Errorw("error while creating district", "error: ", err)
+		return err
+	}
+
+	return nil
+}
+
+func (u *Usecase) CreateStreet(ctx context.Context, idto *dto.CreateStreetInDto) error {
+	district, err := u.districtRepo.Find(ctx, &dtoDomain.GormQuery{
+		Where: &[]dtoDomain.GormWhere{
+			{
+				Column:    "id",
+				Condition: "=",
+				Value:     idto.DistrictID,
+			},
+		},
+	})
+
+	if err != nil {
+		u.logger.Errorw("error while creating street", "error: ", err)
+		return err
+	}
+
+	if district == nil {
+		u.logger.Warnw("district not found", "id", idto.DistrictID)
+		return errors.New("district not found")
+	}
+
+	street, err := entity.NewStreet(idto.Name, idto.ZipCode, idto.Number, district)
+	if err != nil {
+		u.logger.Errorw("error while creating street", "error: ", err)
+		return err
+	}
+
+	err = u.streetRepo.Create(ctx, street)
+	if err != nil {
+		u.logger.Errorw("error while creating street", "error: ", err)
+		return err
+	}
+
+	return nil
+}
+
+func (u *Usecase) FindCountryByIdentifier(ctx context.Context, idto *dto.FindCountryByIdentifierInDto) (*entity.Country, error) {
+	country, err := u.countryRepo.Find(ctx, &dtoDomain.GormQuery{
+		Where: &[]dtoDomain.GormWhere{
+			{
+				Column:    "id",
+				Condition: "=",
+				Value:     idto.Identifier,
+			},
+		},
+	})
+
+	if err != nil {
+		u.logger.Errorw("error while finding country", "error: ", err)
+		return nil, err
+	}
+
+	if country == nil {
+		u.logger.Warnw("country not found", "id", idto.Identifier)
+		return nil, errors.New("country not found")
+	}
+
+	return country, nil
 }

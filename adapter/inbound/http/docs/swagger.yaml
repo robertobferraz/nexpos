@@ -42,21 +42,63 @@ definitions:
     - phone_number
     - username
     type: object
-  dto.CreateUserOutDto:
+  dto.GetUsersOutDto:
     properties:
-      data: {}
+      birth_date:
+        type: string
       email:
         type: string
-      error:
-        $ref: '#/definitions/dto.BaseError'
       id:
         type: string
-      message:
+      image:
+        $ref: '#/definitions/dto.Image'
+      name:
+        type: string
+      phone_number:
+        type: string
+      username:
+        type: string
+    type: object
+  dto.Image:
+    properties:
+      content_type:
         type: string
       name:
         type: string
-      success:
-        type: boolean
+      url:
+        type: string
+    type: object
+  entity.Category:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      image:
+        $ref: '#/definitions/entity.Image'
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  entity.Image:
+    properties:
+      content_type:
+        type: string
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
     type: object
   entity.User:
     properties:
@@ -74,6 +116,8 @@ definitions:
         type: string
       id:
         type: string
+      image:
+        $ref: '#/definitions/entity.Image'
       name:
         type: string
       phone_number:
@@ -86,6 +130,7 @@ definitions:
   errors.ErrorCode:
     enum:
     - INVALID_INPUT
+    - TOO_MANY_REQUESTS
     - USER_ALREADY_EXISTS
     - INTERNAL_SERVER_ERROR
     - UNAUTHORIZED
@@ -93,6 +138,7 @@ definitions:
     type: string
     x-enum-varnames:
     - ErrInvalidInput
+    - ErrTooManyRequests
     - ErrUserAlreadyExists
     - ErrInternalServer
     - ErrUnauthorized
@@ -106,15 +152,9 @@ info:
   title: Food Swagger API
   version: "1.0"
 paths:
-  /auth/disable/{id}:
+  /auth/disable:
     delete:
       description: Endpoint to delete a user by ID
-      parameters:
-      - description: User ID
-        in: path
-        name: id
-        required: true
-        type: string
       produces:
       - application/json
       responses:
@@ -153,7 +193,7 @@ paths:
             - $ref: '#/definitions/dto.Base'
             - properties:
                 data:
-                  $ref: '#/definitions/dto.CreateUserOutDto'
+                  $ref: '#/definitions/entity.User'
               type: object
         "500":
           description: Internal Server Error
@@ -162,6 +202,98 @@ paths:
       summary: Create a new user
       tags:
       - Auth
+  /category:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Creates a new category with optional image upload
+      parameters:
+      - description: Category name
+        in: query
+        name: name
+        required: true
+        type: string
+      - description: Category description
+        in: query
+        name: description
+        type: string
+      - description: Category image file
+        in: formData
+        name: image
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Base'
+            - properties:
+                data:
+                  $ref: '#/definitions/entity.Category'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Base'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Base'
+      security:
+      - ApiKeyAuth: []
+      summary: Create a new category
+      tags:
+      - Category
+  /image/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves an image file by its ID, with validation, type restrictions,
+        rate limiting, and size checks
+      parameters:
+      - description: Image ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.Base'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.Base'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.Base'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/dto.Base'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/dto.BaseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Base'
+      security:
+      - ApiKeyAuth: []
+      summary: Get image by ID
+      tags:
+      - Image
   /user:
     get:
       consumes:
@@ -178,7 +310,7 @@ paths:
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/entity.User'
+                    $ref: '#/definitions/dto.GetUsersOutDto'
                   type: array
               type: object
         "500":
@@ -188,6 +320,61 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: List all-users
+      tags:
+      - User
+    put:
+      consumes:
+      - multipart/form-data
+      description: Updates the details of an existing user, including optional profile
+        image
+      parameters:
+      - description: Email address
+        in: query
+        name: email
+        type: string
+      - description: Username
+        in: query
+        name: username
+        type: string
+      - description: Phone number
+        in: query
+        name: phone_number
+        type: string
+      - description: Birth date in format YYYY-MM-DD
+        in: query
+        name: birth_date
+        type: string
+      - description: Full name
+        in: query
+        name: name
+        type: string
+      - description: Profile image
+        in: formData
+        name: image
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Base'
+            - properties:
+                data:
+                  $ref: '#/definitions/entity.User'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.BaseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.BaseError'
+      security:
+      - ApiKeyAuth: []
+      summary: Update user
       tags:
       - User
 securityDefinitions:

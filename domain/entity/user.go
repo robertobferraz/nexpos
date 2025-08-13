@@ -30,12 +30,14 @@ type User struct {
 	Username    *string    `json:"username" valid:"required"`
 	Name        *string    `json:"name" valid:"required~Name is missing,stringlength(2|50)~Name must be 2-50 characters"`
 	PhoneNumber *string    `json:"phone_number" valid:"phone~Invalid phone number format,optional"`
+	ImageID     *string    `json:"-" valid:"-"`
+	Image       *Image     `json:"image" valid:"-"`
 	BirthDate   *time.Time `json:"birth_date" valid:"-"`
 	Cpf         *string    `json:"cpf" valid:"-"`
 	ExternalID  *string    `json:"external_id" valid:"-"`
 }
 
-func NewUser(name, username, email, cpf, phoneNumber *string, birthdate *string, externalID *string) (*User, error) {
+func NewUser(name, username, email, cpf, phoneNumber, birthdate, externalID *string, image *Image) (*User, error) {
 	if cpf != nil {
 		isValid := utils.CpfValidator(*cpf)
 		if !isValid {
@@ -43,9 +45,18 @@ func NewUser(name, username, email, cpf, phoneNumber *string, birthdate *string,
 		}
 	}
 
-	bDate, err := time.Parse("2006-01-02", *birthdate)
-	if err != nil {
-		return nil, err
+	var bDate time.Time
+	var err error
+	if birthdate != nil {
+		bDate, err = time.Parse("2006-01-02", *birthdate)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var imageID *string
+	if image != nil {
+		imageID = image.ID
 	}
 
 	user := &User{
@@ -54,6 +65,8 @@ func NewUser(name, username, email, cpf, phoneNumber *string, birthdate *string,
 		Email:       email,
 		BirthDate:   utils.PTime(bDate),
 		Cpf:         cpf,
+		ImageID:     imageID,
+		Image:       image,
 		PhoneNumber: phoneNumber,
 		ExternalID:  externalID,
 	}
@@ -66,6 +79,41 @@ func NewUser(name, username, email, cpf, phoneNumber *string, birthdate *string,
 	}
 
 	return user, nil
+}
+
+func (p *User) SetName(name *string) error {
+	p.Name = name
+	return p.isValid()
+}
+
+func (p *User) SetUsername(username *string) error {
+	p.Username = username
+	return p.isValid()
+}
+
+func (p *User) SetEmail(email *string) error {
+	p.Email = email
+	return p.isValid()
+}
+
+func (p *User) SetPhoneNumber(phoneNumber *string) error {
+	p.PhoneNumber = phoneNumber
+	return p.isValid()
+}
+
+func (p *User) SetImage(image *Image) error {
+	p.Image = image
+	return p.isValid()
+}
+
+func (p *User) SetBirthDate(birthDate *string) error {
+	bDate, err := time.Parse("2006-01-02", *birthDate)
+	if err != nil {
+		return err
+	}
+
+	p.BirthDate = utils.PTime(bDate)
+	return p.isValid()
 }
 
 func (p *User) isValid() error {

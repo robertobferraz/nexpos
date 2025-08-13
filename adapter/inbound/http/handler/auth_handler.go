@@ -46,7 +46,7 @@ func (h *AuthHandler) RegisterRoutes(r fiber.Router) {
 	noAuth.Post("signup", h.Signup)
 
 	auth := r.Group("/auth", h.authMd.Require, h.userMd.CheckUser)
-	auth.Delete("disable/:id", h.Delete)
+	auth.Delete("/disable", h.Delete)
 }
 
 func formatValidationErrors(err error) string {
@@ -82,7 +82,7 @@ func formatValidationErrors(err error) string {
 // @Accept       json
 // @Produce      json
 // @Param        payload  body      dto.CreateUserInDto  true  "User registration input"
-// @Success      200      {object}  dto.Base{data=dto.CreateUserOutDto}
+// @Success      200      {object}  dto.Base{data=entity.User}
 // @Failure      500      {object}  dto.Base
 // @Router       /auth/signup [post]
 func (h *AuthHandler) Signup(c *fiber.Ctx) error {
@@ -132,13 +132,12 @@ func (h *AuthHandler) Signup(c *fiber.Ctx) error {
 // @Security ApiKeyAuth
 // @Tags Auth
 // @Produce json
-// @Param id path string true "User ID"
 // @Success 200 {object} dto.Base
 // @Failure 500 {object} dto.Base
-// @Router /auth/disable/{id} [delete]
+// @Router /auth/disable [delete]
 func (h *AuthHandler) Delete(c *fiber.Ctx) error {
-	id := c.Params("id")
-	err := h.uc.DeleteUser(c.Context(), &dto.DeleteUserInDto{ID: utils.PString(id)})
+	id := c.Locals("userID").(*string)
+	err := h.uc.DeleteUser(c.Context(), &dto.DeleteUserInDto{ID: id})
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(dto.Base{
 			Success: utils.PBool(false),
@@ -152,6 +151,6 @@ func (h *AuthHandler) Delete(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(dto.Base{
 		Success: utils.PBool(true),
 		Error:   nil,
-		Message: utils.PString("user deleted successfully"),
+		Message: utils.PString("We’ve deactivated your account as requested. Changed your mind? Just log in within 30 days to reactivate it."),
 	})
 }

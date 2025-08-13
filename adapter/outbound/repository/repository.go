@@ -18,4 +18,5 @@ var Module = fx.Module(
 	src.StreetModule,
 	src.DistrictModule,
 	src.UserAddressModule,
+	src.ImageModule,
 )

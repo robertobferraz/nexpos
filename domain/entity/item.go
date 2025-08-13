@@ -16,16 +16,23 @@ type Item struct {
 	Base        `json:",inline" valid:"-"`
 	Name        *string   `json:"name" valid:"-"`
 	Description *string   `json:"description" valid:"-"`
-	Image       *string   `json:"image" valid:"-"`
+	ImageID     *string   `json:"-" valid:"-"`
+	Image       *Image    `json:"image" valid:"-"`
 	Price       *float64  `json:"price" valid:"-"`
 	CategoryID  *string   `json:"-" valid:"-"`
 	Category    *Category `json:"category" valid:"-"`
 }
 
-func NewItem(name, description, image *string, price *float64, category *Category) (*Item, error) {
+func NewItem(name, description *string, price *float64, category *Category, image *Image) (*Item, error) {
+	var imgID *string
+	if image != nil {
+		imgID = image.ID
+	}
+
 	item := &Item{
 		Name:        name,
 		Description: description,
+		ImageID:     imgID,
 		Image:       image,
 		Price:       price,
 		CategoryID:  category.ID,

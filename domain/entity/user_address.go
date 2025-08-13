@@ -13,19 +13,19 @@ func init() {
 }
 
 type UserAddress struct {
-	Base   `json:",inline" valid:"-"`
-	UserID *string `json:"-" valid:"-"`
-	User   *User   `json:"user" valid:"-"`
-	CityID *string `json:"-" valid:"-"`
-	City   *City   `json:"city" valid:"-"`
+	Base     `json:",inline" valid:"-"`
+	UserID   *string `json:"-" valid:"-"`
+	User     *User   `json:"user" valid:"-"`
+	StreetID *string `json:"-" valid:"-"`
+	Street   *Street `json:"street" valid:"-"`
 }
 
-func NewUserAddress(user *User, city *City) (*UserAddress, error) {
+func NewUserAddress(user *User, street *Street) (*UserAddress, error) {
 	userAddress := &UserAddress{
-		UserID: user.ID,
-		User:   user,
-		CityID: city.ID,
-		City:   city,
+		UserID:   user.ID,
+		User:     user,
+		StreetID: street.ID,
+		Street:   street,
 	}
 
 	userAddress.ID = utils.PString(uuid.NewV4().String())

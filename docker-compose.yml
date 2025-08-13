@@ -1,7 +1,7 @@
 version: '3.4'
 
 services:
-  food-service:
+  nexpos-service:
     build:
       context: .
       dockerfile: .docker/Dockerfile.dev
@@ -15,7 +15,7 @@ services:
     depends_on:
       - postgres
     networks:
-      - food-service
+      - nexpos-service
     extra_hosts:
       - 'host.docker.internal:172.17.0.1'
 
@@ -32,14 +32,34 @@ services:
     ports:
       - $POSTGRES_PORT:5432
     networks:
-      - food-service
+      - nexpos-service
+    extra_hosts:
+      - 'host.docker.internal:172.17.0.1'
+
+  redis:
+    image: redis:8-alpine
+    restart: always
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    command: [ "redis-server", "--save", "60", "1", "--loglevel", "warning" ]
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - nexpos-service
     extra_hosts:
       - 'host.docker.internal:172.17.0.1'
 
 volumes:
   data:
     driver: local
+  redis-data:
+    driver: local
 
 networks:
-  food-service:
+  nexpos-service:
     driver: bridge

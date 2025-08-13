@@ -5,6 +5,9 @@ import (
 )
 
 func PString(str string) *string {
+	if str == "" {
+		return nil
+	}
 	return &str
 }
 
@@ -22,4 +25,12 @@ func PTime(t time.Time) *time.Time {
 
 func PBool(b bool) *bool {
 	return &b
+}
+
+func PByte(b []byte) *[]byte {
+	return &b
+}
+
+func PInt64(i int64) *int64 {
+	return &i
 }

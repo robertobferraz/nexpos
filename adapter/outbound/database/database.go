@@ -8,4 +8,5 @@ import (
 var Module = fx.Module(
 	"database",
 	postgres.Module,
+	//redis.Module,
 )
