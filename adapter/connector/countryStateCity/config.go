@@ -11,7 +11,7 @@ type Config struct {
 }
 
 var ConfigModule = fx.Module(
-	"country_state_api_config",
+	"country_state_city_config",
 	fx.Provide(NewConfig),
 )
 
