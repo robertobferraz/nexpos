@@ -1,5 +1,25 @@
 basePath: /v1
 definitions:
+  dto.ActionBrazilInDto:
+    properties:
+      cep:
+        type: string
+      number:
+        type: string
+    type: object
+  dto.ActionOthersInDto:
+    properties:
+      district:
+        $ref: '#/definitions/dto.District'
+      district_id:
+        type: string
+      state_id:
+        type: string
+      street:
+        $ref: '#/definitions/dto.Street'
+      street_id:
+        type: string
+    type: object
   dto.Base:
     properties:
       data: {}
@@ -16,6 +36,13 @@ definitions:
         $ref: '#/definitions/errors.ErrorCode'
       message:
         type: string
+    type: object
+  dto.CreateUserAddressInDto:
+    properties:
+      action_brazil:
+        $ref: '#/definitions/dto.ActionBrazilInDto'
+      action_others:
+        $ref: '#/definitions/dto.ActionOthersInDto'
     type: object
   dto.CreateUserInDto:
     properties:
@@ -41,6 +68,13 @@ definitions:
     - password
     - phone_number
     - username
+    type: object
+  dto.District:
+    properties:
+      city_id:
+        type: string
+      name:
+        type: string
     type: object
   dto.GetUsersOutDto:
     properties:
@@ -68,6 +102,17 @@ definitions:
       url:
         type: string
     type: object
+  dto.Street:
+    properties:
+      district_id:
+        type: string
+      name:
+        type: string
+      number:
+        type: string
+      zip_code:
+        type: string
+    type: object
   entity.Category:
     properties:
       created_at:
@@ -80,6 +125,65 @@ definitions:
         type: string
       image:
         $ref: '#/definitions/entity.Image'
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  entity.City:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      external_id:
+        type: integer
+      id:
+        type: string
+      name:
+        type: string
+      state:
+        $ref: '#/definitions/entity.State'
+      updated_at:
+        type: string
+    type: object
+  entity.Country:
+    properties:
+      capital:
+        type: string
+      created_at:
+        type: string
+      currency_code:
+        type: string
+      deleted_at:
+        type: string
+      emoji:
+        type: string
+      external_id:
+        type: integer
+      id:
+        type: string
+      iso2:
+        type: string
+      iso3:
+        type: string
+      name:
+        type: string
+      phone_code:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  entity.District:
+    properties:
+      city:
+        $ref: '#/definitions/entity.City'
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      id:
+        type: string
       name:
         type: string
       updated_at:
@@ -98,6 +202,44 @@ definitions:
       name:
         type: string
       updated_at:
+        type: string
+    type: object
+  entity.State:
+    properties:
+      country:
+        $ref: '#/definitions/entity.Country'
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      external_id:
+        type: integer
+      id:
+        type: string
+      iso2:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  entity.Street:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      district:
+        $ref: '#/definitions/entity.District'
+      id:
+        type: string
+      name:
+        type: string
+      number:
+        type: string
+      updated_at:
+        type: string
+      zip_code:
         type: string
     type: object
   entity.User:
@@ -126,6 +268,21 @@ definitions:
         type: string
       username:
         type: string
+    type: object
+  entity.UserAddress:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      id:
+        type: string
+      street:
+        $ref: '#/definitions/entity.Street'
+      updated_at:
+        type: string
+      user:
+        $ref: '#/definitions/entity.User'
     type: object
   errors.ErrorCode:
     enum:
@@ -375,6 +532,75 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Update user
+      tags:
+      - User
+  /user/address:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves the address of the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Base'
+            - properties:
+                data:
+                  $ref: '#/definitions/entity.User'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.BaseError'
+      security:
+      - ApiKeyAuth: []
+      summary: Get user address
+      tags:
+      - User
+  /user/address/{id}:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new address for the authenticated user
+      parameters:
+      - description: country ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User address data. If the selected country is Brazil, you may
+          set action_others to null and only fill in the action_brazil fields.
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateUserAddressInDto'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Base'
+            - properties:
+                data:
+                  $ref: '#/definitions/entity.UserAddress'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.BaseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.BaseError'
+      security:
+      - ApiKeyAuth: []
+      summary: Create user address
       tags:
       - User
 securityDefinitions:
