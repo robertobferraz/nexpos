@@ -1,20 +1,25 @@
 package scheduler
 
 import (
-	"cloud.google.com/go/firestore"
 	"context"
 	"errors"
+	"time"
+
+	"cloud.google.com/go/firestore"
+	"github.com/robertobff/nexpos/adapter/outbound/api/countryStateCity"
 	"github.com/robertobff/nexpos/adapter/outbound/auth"
+	"github.com/robertobff/nexpos/adapter/outbound/database/redis"
 	"github.com/robertobff/nexpos/utils"
 	"github.com/robfig/cron/v3"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
-	"time"
 )
 
 type Scheduler struct {
 	cron   *cron.Cron
 	fb     *auth.Firebase
+	redis  *redis.Redis
+	cscApi *countryStateCity.API
 	logger *zap.SugaredLogger
 }
 
@@ -23,14 +28,37 @@ var Module = fx.Module(
 	fx.Provide(NewScheduler),
 )
 
-func NewScheduler(logger *zap.SugaredLogger, fb *auth.Firebase) *Scheduler {
+func NewScheduler(
+	logger *zap.SugaredLogger,
+	fb *auth.Firebase,
+	redis *redis.Redis,
+	cscApi *countryStateCity.API,
+) *Scheduler {
 	s := &Scheduler{
 		cron:   cron.New(),
 		fb:     fb,
+		redis:  redis,
+		cscApi: cscApi,
 		logger: logger,
 	}
 	s.reloadPendingDeletions(context.Background())
+	go s.syncCountryStateCity(context.Background())
+	_, err := s.cron.AddFunc("0 3 * * *", func() {
+		go s.syncCountryStateCity(context.Background())
+	})
+	if err != nil {
+		return nil
+	}
+
+	s.cron.Start()
 	return s
+}
+
+func (s *Scheduler) syncCountryStateCity(ctx context.Context) {
+	err := s.cscApi.StartSync(ctx)
+	if err != nil {
+		s.logger.Errorw("failed to start sync country state city", "error", err)
+	}
 }
 
 func (s *Scheduler) reloadPendingDeletions(ctx context.Context) {
