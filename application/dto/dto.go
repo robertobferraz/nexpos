@@ -111,19 +111,27 @@ type GetUsersOutDto struct {
 }
 
 type CreateCountryInDto struct {
-	Name       *string `json:"name"`
-	Identifier *string
+	Name         *string `json:"name"`
+	Iso2         *string `json:"iso2"`
+	Iso3         *string `json:"iso3"`
+	CurrencyCode *string `json:"currency_code"`
+	PhoneCode    *string `json:"phone_code"`
+	Capital      *string `json:"capital"`
+	Emoji        *string `json:"emoji"`
+	ExternalID   *int    `json:"external_id"`
 }
 
 type CreateStateInDto struct {
 	Name       *string `json:"name"`
-	Identifier *string `json:"identifier"`
+	Iso2       *string `json:"iso2"`
 	CountryID  *string `json:"country_id"`
+	ExternalID *int    `json:"external_id"`
 }
 
 type CreateCityInDto struct {
-	Name    *string `json:"name"`
-	StateID *string `json:"state_id"`
+	Name       *string `json:"name"`
+	StateID    *string `json:"state_id"`
+	ExternalID *int    `json:"external_id"`
 }
 
 type CreateDistrictInDto struct {
