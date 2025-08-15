@@ -13,17 +13,19 @@ func init() {
 }
 
 type City struct {
-	Base    `json:",inline" valid:"-"`
-	Name    *string `json:"name" valid:"required"`
-	StateID *string `json:"-" valid:"-"`
-	State   *State  `json:"state" valid:"-"`
+	Base       `json:",inline" valid:"-"`
+	Name       *string `json:"name" valid:"required"`
+	StateID    *string `json:"-" valid:"-"`
+	State      *State  `json:"state" valid:"-"`
+	ExternalId *int    `json:"external_id" valid:"-"`
 }
 
-func NewCity(name *string, state *State) (*City, error) {
+func NewCity(name *string, externalId *int, state *State) (*City, error) {
 	city := &City{
-		Name:    name,
-		StateID: state.ID,
-		State:   state,
+		Name:       name,
+		StateID:    state.ID,
+		State:      state,
+		ExternalId: externalId,
 	}
 
 	city.ID = utils.PString(uuid.NewV4().String())
