@@ -15,17 +15,19 @@ func init() {
 type State struct {
 	Base       `json:",inline" valid:"-"`
 	Name       *string  `json:"name" valid:"required"`
-	Identifier *string  `json:"identifier" valid:"required"`
+	Iso2       *string  `json:"iso2" valid:"required"`
 	CountryID  *string  `json:"-" valid:"-"`
 	Country    *Country `json:"country" valid:"-"`
+	ExternalID *int     `json:"external_id" valid:"-"`
 }
 
-func NewState(name, identifier *string, country *Country) (*State, error) {
+func NewState(name, iso2 *string, externalId *int, country *Country) (*State, error) {
 	state := &State{
 		Name:       name,
-		Identifier: identifier,
+		Iso2:       iso2,
 		CountryID:  country.ID,
 		Country:    country,
+		ExternalID: externalId,
 	}
 
 	state.ID = utils.PString(uuid.NewV4().String())
