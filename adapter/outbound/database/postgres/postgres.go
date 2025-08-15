@@ -22,6 +22,7 @@ var Module = fx.Module(
 	fx.Provide(NewPostgres),
 	fx.Invoke(HookPostgres),
 	fx.Invoke(enableUUIDExtension),
+	fx.Invoke(enableUnaccentExtension),
 )
 
 type Postgres struct {
@@ -120,6 +121,14 @@ func HookPostgres(lc fx.Lifecycle, pg *Postgres, l *zap.SugaredLogger) {
 
 func enableUUIDExtension(pg *Postgres) {
 	_, err := pg.Db.Raw(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`).Rows()
+
+	if err != nil {
+		log.Panicln(err)
+	}
+}
+
+func enableUnaccentExtension(pg *Postgres) {
+	_, err := pg.Db.Raw(`CREATE EXTENSION IF NOT EXISTS unaccent;`).Rows()
 
 	if err != nil {
 		log.Panicln(err)
