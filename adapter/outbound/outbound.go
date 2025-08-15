@@ -1,6 +1,7 @@
 package outbound
 
 import (
+	"github.com/robertobff/nexpos/adapter/outbound/api"
 	"github.com/robertobff/nexpos/adapter/outbound/auth"
 	"github.com/robertobff/nexpos/adapter/outbound/database"
 	"github.com/robertobff/nexpos/adapter/outbound/logger"
@@ -11,6 +12,7 @@ import (
 
 var Module = fx.Module(
 	"outbound",
+	api.Module,
 	logger.Module,
 	database.Module,
 	repository.Module,
