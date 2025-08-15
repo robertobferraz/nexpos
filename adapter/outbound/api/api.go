@@ -1,7 +1,11 @@
 package api
 
-import "go.uber.org/fx"
+import (
+	"github.com/robertobff/nexpos/adapter/outbound/api/countryStateCity"
+	"go.uber.org/fx"
+)
 
 var Module = fx.Module(
 	"api",
+	countryStateCity.Module,
 )
