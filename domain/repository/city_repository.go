@@ -9,6 +9,7 @@ import (
 
 type CityRepository interface {
 	Create(context.Context, *entity.City) error
+	CreateBulk(context.Context, *[]entity.City) error
 	Get(context.Context, *dto.GormQuery) (*[]entity.City, error)
 	Find(context.Context, *dto.GormQuery) (*entity.City, error)
 	Save(context.Context, *entity.City) error
