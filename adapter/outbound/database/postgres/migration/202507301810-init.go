@@ -104,8 +104,8 @@ var M_202507301810 *gormigrate.Migration = func() *gormigrate.Migration {
 
 	type UserAddress struct {
 		Base
-		UserID *string `gorm:"column:user_id;type:uuid"`
-		CityID *string `gorm:"column:city_id;type:uuid"`
+		UserID   *string `gorm:"column:user_id;type:uuid"`
+		StreetID *string `gorm:"column:street_id;type:uuid"`
 	}
 
 	type UserOrdersItem struct {
