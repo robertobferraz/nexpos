@@ -581,7 +581,7 @@ func (u *Usecase) DeleteDiscount(ctx context.Context, idto *dto.DeleteDiscountIn
 }
 
 func (u *Usecase) CreateCountry(ctx context.Context, idto *dto.CreateCountryInDto) error {
-	country, err := entity.NewCountry(idto.Name, idto.Identifier)
+	country, err := entity.NewCountry(idto.Name, idto.Iso2, idto.Iso3, idto.PhoneCode, idto.Capital, idto.CurrencyCode, idto.Emoji, idto.ExternalID)
 	if err != nil {
 		u.logger.Errorw("error while creating country", "error: ", err)
 		return err
@@ -616,7 +616,7 @@ func (u *Usecase) CreateState(ctx context.Context, idto *dto.CreateStateInDto) e
 		return errors.New("country not found")
 	}
 
-	state, err := entity.NewState(idto.Name, idto.Identifier, country)
+	state, err := entity.NewState(idto.Name, idto.Iso2, idto.ExternalID, country)
 	if err != nil {
 		u.logger.Errorw("error while creating state", "error: ", err)
 		return err
@@ -652,7 +652,7 @@ func (u *Usecase) CreateCity(ctx context.Context, idto *dto.CreateCityInDto) err
 		return errors.New("state not found")
 	}
 
-	city, err := entity.NewCity(idto.Name, state)
+	city, err := entity.NewCity(idto.Name, idto.ExternalID, state)
 	if err != nil {
 		u.logger.Errorw("error while creating city", "error: ", err)
 		return err
