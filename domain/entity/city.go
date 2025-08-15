@@ -17,7 +17,7 @@ type City struct {
 	Name       *string `json:"name" valid:"required"`
 	StateID    *string `json:"-" valid:"-"`
 	State      *State  `json:"state" valid:"-"`
-	ExternalId *int    `json:"external_id" valid:"-"`
+	ExternalId *int    `json:"-" valid:"-"`
 }
 
 func NewCity(name *string, externalId *int, state *State) (*City, error) {

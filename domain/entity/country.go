@@ -21,7 +21,7 @@ type Country struct {
 	Capital      *string `json:"capital" valid:"-"`
 	CurrencyCode *string `json:"currency_code" valid:"-"`
 	Emoji        *string `json:"emoji" valid:"-"`
-	ExternalID   *int    `json:"external_id" valid:"-"`
+	ExternalID   *int    `json:"-" valid:"-"`
 }
 
 func NewCountry(name, iso2, iso3, phoneCode, capital, currencyCode, emoji *string, externalID *int) (*Country, error) {

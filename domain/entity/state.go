@@ -18,7 +18,7 @@ type State struct {
 	Iso2       *string  `json:"iso2" valid:"required"`
 	CountryID  *string  `json:"-" valid:"-"`
 	Country    *Country `json:"country" valid:"-"`
-	ExternalID *int     `json:"external_id" valid:"-"`
+	ExternalID *int     `json:"-" valid:"-"`
 }
 
 func NewState(name, iso2 *string, externalId *int, country *Country) (*State, error) {

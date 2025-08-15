@@ -58,12 +58,18 @@ func NewUser(name, username, email, cpf, phoneNumber, birthdate, externalID *str
 	if image != nil {
 		imageID = image.ID
 	}
+	var date *time.Time
+	if bDate.Before(time.Date(1900, 1, 1, 0, 0, 0, 0, time.UTC)) {
+		date = nil
+	} else {
+		date = utils.PTime(bDate)
+	}
 
 	user := &User{
 		Name:        name,
 		Username:    username,
 		Email:       email,
-		BirthDate:   utils.PTime(bDate),
+		BirthDate:   date,
 		Cpf:         cpf,
 		ImageID:     imageID,
 		Image:       image,
