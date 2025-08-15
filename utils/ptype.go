@@ -23,6 +23,10 @@ func PTime(t time.Time) *time.Time {
 	return &t
 }
 
+func PDuration(d time.Duration) *time.Duration {
+	return &d
+}
+
 func PBool(b bool) *bool {
 	return &b
 }
