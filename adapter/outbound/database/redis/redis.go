@@ -41,12 +41,22 @@ func NewClient(c *Config, logger *zap.SugaredLogger) *Redis {
 	}
 }
 
-func (r *Redis) SaveMsgId(userId *string, imageId *string, duration *time.Duration) error {
-	err := r.client.Set(r.ctx, *userId, imageId, *duration).Err()
+func (r *Redis) SetNX(ctx context.Context, key *string, value interface{}, expiration *time.Duration) (*bool, error) {
+	locked, err := r.client.SetNX(ctx, *key, value, *expiration).Result()
 	if err != nil {
-		r.logger.Errorw("error saving message to key", "key", *userId, "error", err)
-		return fmt.Errorf(fmt.Sprint("error saving message to key: ", userId, " (", err, ")"))
+		return utils.PBool(false), err
 	}
+
+	return utils.PBool(locked), nil
+}
+
+func (r *Redis) Set(ctx context.Context, key *string, value interface{}, expiration *time.Duration) error {
+	res, err := r.client.Set(ctx, *key, value, *expiration).Result()
+	if err != nil {
+		return fmt.Errorf("error saving message to key: %s (%v)", *key, err)
+	}
+
+	r.logger.Debugf("saved key %s successfully: %s", *key, res)
 	return nil
 }
 
@@ -69,8 +79,8 @@ func (r *Redis) Keys(prefix *string) (*[]string, error) {
 	return &result, nil
 }
 
-func (r *Redis) Del(matchingKeys *[]string) error {
-	_, err := r.client.Del(r.ctx, *matchingKeys...).Result()
+func (r *Redis) Del(matchingKeys *string) error {
+	_, err := r.client.Del(r.ctx, *matchingKeys).Result()
 	if err != nil {
 		r.logger.Errorw("error deleting messages", "matchingKeys", *matchingKeys, "error", err)
 		return fmt.Errorf("error deleting messages. Matching keys: %v. Err: %v", *matchingKeys, err.Error())

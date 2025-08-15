@@ -4,8 +4,6 @@ import (
 	"time"
 
 	"github.com/go-gormigrate/gormigrate/v2"
-	"github.com/robertobff/nexpos/utils"
-	uuid "github.com/satori/go.uuid"
 	"gorm.io/gorm"
 )
 
@@ -65,22 +63,29 @@ var M_202507301810 *gormigrate.Migration = func() *gormigrate.Migration {
 
 	type Country struct {
 		Base
-		Name       *string `gorm:"column:name"`
-		Identifier *string `gorm:"column:identifier"`
+		Name         *string `gorm:"column:name"`
+		Iso2         *string `gorm:"column:iso2;index"`
+		Iso3         *string `gorm:"column:iso3;index"`
+		PhoneCode    *string `gorm:"column:phone_code"`
+		Capital      *string `gorm:"column:capital"`
+		CurrencyCode *string `gorm:"column:currency_code"`
+		Emoji        *string `gorm:"column:emoji"`
+		ExternalID   *int    `gorm:"column:external_id;unique"`
 	}
 
 	type State struct {
 		Base
 		Name       *string `gorm:"column:name"`
-		Identifier *string `gorm:"column:identifier"`
+		Iso2       *string `gorm:"column:iso2;index"`
 		CountryID  *string `gorm:"column:country_id;type:uuid"`
+		ExternalID *int    `gorm:"column:external_id;unique"`
 	}
 
 	type City struct {
 		Base
-		Name     *string `gorm:"column:name"`
-		StateID  *string `gorm:"column:state_id;type:uuid"`
-		StreetID *string `gorm:"column:street_id;type:uuid"`
+		Name       *string `gorm:"column:name"`
+		StateID    *string `gorm:"column:state_id;type:uuid"`
+		ExternalID *int    `gorm:"column:external_id;unique"`
 	}
 
 	type District struct {
@@ -136,6 +141,7 @@ var M_202507301810 *gormigrate.Migration = func() *gormigrate.Migration {
 						&UserOrders{},
 						&UserOrdersItem{},
 						&Country{},
+						&State{},
 						&City{},
 						&District{},
 						&Street{},
@@ -145,22 +151,7 @@ var M_202507301810 *gormigrate.Migration = func() *gormigrate.Migration {
 					); err != nil {
 						return err
 					}
-					{
-						if err := tx.Create(&Country{
-							Base: Base{
-								BaseID: BaseID{
-									ID: utils.PString(uuid.NewV4().String()),
-								},
-								BaseTimestamps: BaseTimestamps{
-									CreatedAt: utils.PTime(time.Now()),
-								},
-							},
-							Name:       utils.PString("Brasil"),
-							Identifier: utils.PString("BR"),
-						}).Error; err != nil {
-							return err
-						}
-					}
+
 					return nil
 				},
 			)
@@ -173,6 +164,7 @@ var M_202507301810 *gormigrate.Migration = func() *gormigrate.Migration {
 				&UserOrders{},
 				&UserOrdersItem{},
 				&Country{},
+				&State{},
 				&City{},
 				&District{},
 				&Street{},
