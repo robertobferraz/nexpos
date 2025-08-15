@@ -13,15 +13,27 @@ func init() {
 }
 
 type Country struct {
-	Base       `json:",inline" valid:"-"`
-	Name       *string `json:"name" valid:"required"`
-	Identifier *string `json:"identifier" valid:"required"`
+	Base         `json:",inline" valid:"-"`
+	Name         *string `json:"name" valid:"required"`
+	Iso2         *string `json:"iso2" valid:"required"`
+	Iso3         *string `json:"iso3" valid:"required"`
+	PhoneCode    *string `json:"phone_code" valid:"-"`
+	Capital      *string `json:"capital" valid:"-"`
+	CurrencyCode *string `json:"currency_code" valid:"-"`
+	Emoji        *string `json:"emoji" valid:"-"`
+	ExternalID   *int    `json:"external_id" valid:"-"`
 }
 
-func NewCountry(name, identifier *string) (*Country, error) {
+func NewCountry(name, iso2, iso3, phoneCode, capital, currencyCode, emoji *string, externalID *int) (*Country, error) {
 	country := &Country{
-		Name:       name,
-		Identifier: identifier,
+		Name:         name,
+		Iso2:         iso2,
+		Iso3:         iso3,
+		PhoneCode:    phoneCode,
+		Capital:      capital,
+		CurrencyCode: currencyCode,
+		Emoji:        emoji,
+		ExternalID:   externalID,
 	}
 
 	country.ID = utils.PString(uuid.NewV4().String())
