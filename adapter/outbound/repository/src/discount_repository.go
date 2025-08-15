@@ -58,9 +58,9 @@ func (r *DiscountRepositorySrc) Get(ctx context.Context, query *dto.GormQuery) (
 }
 
 func (r *DiscountRepositorySrc) Find(ctx context.Context, query *dto.GormQuery) (*entity.Discount, error) {
-	var discount entity.Discount
+	var items entity.Discount
 	gormDB := QueryConstructor(r.pg.Db, query)
-	result := gormDB.WithContext(ctx).Find(&discount)
+	result := gormDB.WithContext(ctx).Find(&items)
 	if result.Error != nil {
 		if errors.Is(gorm.ErrRecordNotFound, result.Error) {
 			return nil, nil
@@ -68,7 +68,12 @@ func (r *DiscountRepositorySrc) Find(ctx context.Context, query *dto.GormQuery) 
 			return nil, result.Error
 		}
 	}
-	return &discount, nil
+
+	if items.ID == nil {
+		return nil, nil
+	}
+
+	return &items, nil
 }
 
 func (r *DiscountRepositorySrc) Save(ctx context.Context, discount *entity.Discount) error {

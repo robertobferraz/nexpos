@@ -58,9 +58,9 @@ func (r *CategoryRepositorySrc) Get(ctx context.Context, query *dto.GormQuery) (
 }
 
 func (r *CategoryRepositorySrc) Find(ctx context.Context, query *dto.GormQuery) (*entity.Category, error) {
-	var category entity.Category
+	var items entity.Category
 	gormDB := QueryConstructor(r.pg.Db, query)
-	result := gormDB.WithContext(ctx).Find(&category)
+	result := gormDB.WithContext(ctx).Find(&items)
 	if result.Error != nil {
 		if errors.Is(gorm.ErrRecordNotFound, result.Error) {
 			return nil, nil
@@ -68,7 +68,12 @@ func (r *CategoryRepositorySrc) Find(ctx context.Context, query *dto.GormQuery) 
 			return nil, result.Error
 		}
 	}
-	return &category, nil
+
+	if items.ID == nil {
+		return nil, nil
+	}
+
+	return &items, nil
 }
 
 func (r *CategoryRepositorySrc) Save(ctx context.Context, category *entity.Category) error {

@@ -68,6 +68,11 @@ func (r *UserAddressRepositorySrc) Find(ctx context.Context, query *dto.GormQuer
 			return nil, result.Error
 		}
 	}
+
+	if items.ID == nil {
+		return nil, nil
+	}
+
 	return &items, nil
 }
 

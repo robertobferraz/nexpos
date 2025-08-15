@@ -83,6 +83,11 @@ func (r *CityRepositorySrc) Find(ctx context.Context, query *dto.GormQuery) (*en
 			return nil, result.Error
 		}
 	}
+
+	if items.ID == nil {
+		return nil, nil
+	}
+
 	return &items, nil
 }
 

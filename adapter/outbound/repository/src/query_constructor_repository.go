@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/robertobff/nexpos/domain/dto"
 
@@ -13,7 +14,12 @@ import (
 func QueryConstructor(db *gorm.DB, query *dto.GormQuery) *gorm.DB {
 	if query.Where != nil {
 		for _, v := range *query.Where {
-			db = db.Where(fmt.Sprint(v.Column, " ", v.Condition, " ?"), v.Value)
+			contains := strings.Contains(v.Condition, "?")
+			if contains {
+				db = db.Where(fmt.Sprint(v.Column, " ", v.Condition), v.Value)
+			} else {
+				db = db.Where(fmt.Sprint(v.Column, " ", v.Condition, " ?"), v.Value)
+			}
 		}
 	}
 

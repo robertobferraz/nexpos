@@ -83,6 +83,11 @@ func (r *CountryRepositorySrc) Find(ctx context.Context, query *dto.GormQuery) (
 			return nil, result.Error
 		}
 	}
+
+	if items.ID == nil {
+		return nil, nil
+	}
+
 	return &items, nil
 }
 
