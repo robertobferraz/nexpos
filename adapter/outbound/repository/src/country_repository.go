@@ -9,6 +9,7 @@ import (
 	"github.com/robertobff/nexpos/domain/entity"
 	"github.com/robertobff/nexpos/domain/repository"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"go.uber.org/fx"
 	"go.uber.org/zap"
@@ -41,6 +42,20 @@ func (r *CountryRepositorySrc) Create(ctx context.Context, Country *entity.Count
 		return err
 	}
 	return nil
+}
+
+func (r *CountryRepositorySrc) CreateBulk(ctx context.Context, countries *[]entity.Country) error {
+	return r.pg.Db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		for _, country := range *countries {
+			if err := tx.Clauses(clause.OnConflict{
+				Columns:   []clause.Column{{Name: "external_id"}},
+				DoNothing: true,
+			}).Create(&country).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (r *CountryRepositorySrc) Get(ctx context.Context, query *dto.GormQuery) (*[]entity.Country, error) {
