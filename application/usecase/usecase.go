@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/robertobff/nexpos/adapter/outbound/api/openCep"
 	"github.com/robertobff/nexpos/adapter/outbound/auth"
 	"github.com/robertobff/nexpos/adapter/outbound/scheduler"
 	"github.com/robertobff/nexpos/application/dto"
@@ -35,6 +36,7 @@ type Usecase struct {
 	districtRepo    repository.DistrictRepository
 	streetRepo      repository.StreetRepository
 	imageRepo       repository.ImageRepository
+	openCep         *openCep.Api
 	fb              *auth.Firebase
 	schedule        *scheduler.Scheduler
 	logger          *zap.SugaredLogger
@@ -51,24 +53,28 @@ func NewUsecase(
 	districtRepo repository.DistrictRepository,
 	streetRepo repository.StreetRepository,
 	imageRepo repository.ImageRepository,
+	userAddressRepo repository.UserAddressRepository,
+	openCep *openCep.Api,
 	fb *auth.Firebase,
 	schedule *scheduler.Scheduler,
 	logger *zap.SugaredLogger,
 ) (*Usecase, error) {
 	return &Usecase{
-		userRepo:       userRepo,
-		userOrdersRepo: userOrdersRepo,
-		itemRepo:       itemRepo,
-		categoryRepo:   categoryRepo,
-		countryRepo:    countryRepo,
-		stateRepo:      stateRepo,
-		cityRepo:       cityRepo,
-		districtRepo:   districtRepo,
-		streetRepo:     streetRepo,
-		imageRepo:      imageRepo,
-		fb:             fb,
-		schedule:       schedule,
-		logger:         logger,
+		userRepo:        userRepo,
+		userOrdersRepo:  userOrdersRepo,
+		itemRepo:        itemRepo,
+		categoryRepo:    categoryRepo,
+		countryRepo:     countryRepo,
+		stateRepo:       stateRepo,
+		cityRepo:        cityRepo,
+		districtRepo:    districtRepo,
+		streetRepo:      streetRepo,
+		imageRepo:       imageRepo,
+		userAddressRepo: userAddressRepo,
+		openCep:         openCep,
+		fb:              fb,
+		schedule:        schedule,
+		logger:          logger,
 	}, nil
 }
 
@@ -761,4 +767,300 @@ func (u *Usecase) FindCountryByIdentifier(ctx context.Context, idto *dto.FindCou
 	}
 
 	return country, nil
+}
+
+func (u *Usecase) CreateUserAddressCondition(ctx context.Context, idto *dto.CreateUserAddressInDto) (*entity.UserAddress, error) {
+	country, err := u.countryRepo.Find(ctx, &dtoDomain.GormQuery{
+		Where: &[]dtoDomain.GormWhere{
+			{
+				Column:    "id",
+				Condition: "=",
+				Value:     idto.CountryID,
+			},
+		},
+	})
+	if err != nil {
+		u.logger.Errorw("error while creating user address", "error", err)
+		return nil, err
+	}
+
+	if country == nil {
+		u.logger.Warnw("country not found", "id", idto.CountryID)
+		return nil, errors.New("country not found")
+	}
+
+	switch *country.Iso2 {
+	case "BR":
+		if idto.ActionBrazil == nil {
+			u.logger.Error("missing payload for Brazil")
+			return nil, errors.New("missing payload for Brazil")
+		}
+		return u.actionBrazil(ctx, idto.ActionBrazil)
+	default:
+		if idto.ActionOthers == nil {
+			u.logger.Error("missing payload for other countries")
+			return nil, errors.New("missing payload for other countries")
+		}
+		return u.actionOthers(ctx, idto.ActionOthers)
+	}
+}
+
+func (u *Usecase) actionBrazil(ctx context.Context, idto *dto.ActionBrazilInDto) (*entity.UserAddress, error) {
+	country, err := u.countryRepo.Find(ctx, &dtoDomain.GormQuery{
+		Where: &[]dtoDomain.GormWhere{
+			{
+				Column:    "id",
+				Condition: "=",
+				Value:     idto.CountryID,
+			},
+		},
+	})
+
+	if err != nil {
+		u.logger.Errorw("error while finding country", "error: ", err)
+		return nil, err
+	}
+
+	user, err := u.userRepo.Find(ctx, &dtoDomain.GormQuery{
+		Where: &[]dtoDomain.GormWhere{
+			{
+				Column:    "id",
+				Condition: "=",
+				Value:     idto.UserID,
+			},
+		},
+	})
+
+	if err != nil {
+		u.logger.Errorw("error while creating district", "error: ", err)
+		return nil, err
+	}
+
+	if user == nil {
+		u.logger.Warnw("user not found", "id", idto.UserID)
+		return nil, errors.New("user not found")
+	}
+
+	resp, err := u.openCep.GetByCep(idto.Cep)
+	if err != nil {
+		u.logger.Errorw("error while getting brazil", "error: ", err)
+		return nil, err
+	}
+
+	if resp != nil {
+		state, err := u.stateRepo.Find(ctx, &dtoDomain.GormQuery{
+			Where: &[]dtoDomain.GormWhere{
+				{
+					Column:    "country_id",
+					Condition: "=",
+					Value:     country.ID,
+				},
+				{
+					Column:    "iso2",
+					Condition: "=",
+					Value:     resp.Uf,
+				},
+			},
+		})
+		if err != nil {
+			u.logger.Errorw("error while getting brazil", "error: ", err)
+			return nil, err
+		}
+		state.Country = country
+		city, err := u.cityRepo.Find(ctx, &dtoDomain.GormQuery{
+			Where: &[]dtoDomain.GormWhere{
+				{
+					Column:    "state_id",
+					Condition: "=",
+					Value:     state.ID,
+				},
+				{
+					Column:    "unaccent(name)",
+					Condition: "ILIKE unaccent(?)",
+					Value:     utils.PString("%" + *resp.Localidade + "%"),
+				},
+			},
+		})
+
+		if err != nil {
+			u.logger.Errorw("error while getting brazil", "error: ", err)
+			return nil, err
+		}
+
+		if city == nil {
+			u.logger.Warnw("city not found", "id", idto.UserID)
+			return nil, errors.New("city not found")
+		}
+
+		district, err := u.districtRepo.Find(ctx, &dtoDomain.GormQuery{
+			Where: &[]dtoDomain.GormWhere{
+				{
+					Column:    "city_id",
+					Condition: "=",
+					Value:     city.ID,
+				},
+				{
+					Column:    "unaccent(name)",
+					Condition: "ILIKE unaccent(?)",
+					Value:     utils.PString("%" + *resp.Bairro + "%"),
+				},
+			},
+			Debug: true,
+		})
+		if err != nil {
+			u.logger.Errorw("error while getting brazil", "error: ", err)
+			return nil, err
+		}
+
+		if district == nil {
+			newDistrict, err := entity.NewDistrict(resp.Bairro, city)
+			if err != nil {
+				u.logger.Errorw("error while creating district", "error: ", err)
+				return nil, err
+			}
+
+			err = u.districtRepo.Create(ctx, newDistrict)
+			if err != nil {
+				u.logger.Errorw("error while creating district", "error: ", err)
+				return nil, err
+			}
+
+			district = newDistrict
+		}
+
+		street, err := u.streetRepo.Find(ctx, &dtoDomain.GormQuery{
+			Where: &[]dtoDomain.GormWhere{
+				{
+					Column:    "district_id",
+					Condition: "=",
+					Value:     district.ID,
+				},
+				{
+					Column:    "unaccent(name)",
+					Condition: "ILIKE unaccent(?)",
+					Value:     utils.PString("%" + *resp.Logradouro + "%"),
+				},
+			},
+			Preload: &[]dtoDomain.GormPreload{
+				{
+					Field: "District.City.State.Country",
+				},
+			},
+		})
+
+		if err != nil {
+			u.logger.Errorw("error while getting brazil", "error: ", err)
+			return nil, err
+		}
+
+		existStreet := true
+		var newStreet *entity.Street
+		if street == nil {
+			existStreet = false
+			newStreet, err = entity.NewStreet(resp.Logradouro, idto.Cep, idto.Number, district)
+			if err != nil {
+				u.logger.Errorw("error while creating street", "error: ", err)
+				return nil, err
+			}
+		} else if street.Number != idto.Number {
+			newStreet, err = entity.NewStreet(resp.Logradouro, idto.Cep, idto.Number, district)
+			if err != nil {
+				u.logger.Errorw("error while creating street", "error: ", err)
+				return nil, err
+			}
+		} else if street.ZipCode != idto.Cep {
+			newStreet, err = entity.NewStreet(resp.Logradouro, idto.Cep, idto.Number, district)
+			if err != nil {
+				u.logger.Errorw("error while creating street", "error: ", err)
+				return nil, err
+			}
+		}
+
+		if !existStreet {
+			err = u.streetRepo.Create(ctx, newStreet)
+			if err != nil {
+				u.logger.Errorw("error while creating street", "error: ", err)
+				return nil, err
+			}
+
+			street = newStreet
+			street.District.City = city
+			street.District.City.State = state
+		}
+
+		newUserAddress, err := entity.NewUserAddress(user, street)
+		if err != nil {
+			u.logger.Errorw("error while creating user address", "error: ", err)
+			return nil, err
+		}
+
+		err = u.userAddressRepo.Create(ctx, newUserAddress)
+		if err != nil {
+			u.logger.Errorw("error while creating user address", "error: ", err)
+			return nil, err
+		}
+
+		return newUserAddress, nil
+	} else {
+		return nil, errors.New("cep not found")
+	}
+}
+
+func (u *Usecase) actionOthers(ctx context.Context, idto *dto.ActionOthersInDto) (*entity.UserAddress, error) {
+	return nil, nil
+}
+
+func (u *Usecase) GetUserAddress(ctx context.Context, idto *dto.GetUserAddressInDto) (*dto.GetUserAddressOutDto, error) {
+	userAddress, err := u.userAddressRepo.Find(ctx, &dtoDomain.GormQuery{
+		Where: &[]dtoDomain.GormWhere{
+			{
+				Column:    "user_id",
+				Condition: "=",
+				Value:     idto.UserID,
+			},
+		},
+		Preload: &[]dtoDomain.GormPreload{
+			{
+				Field: "Street.District.City.State.Country",
+			},
+			{
+				Field: "User",
+			},
+		},
+	})
+
+	if err != nil {
+		u.logger.Errorw("error while getting user address", "error: ", err)
+		return nil, err
+	}
+
+	if userAddress == nil {
+		u.logger.Warnw("user address not found", "id", idto.UserID)
+		return nil, errors.New("user address not found")
+	}
+
+	var response dto.GetUserAddressOutDto
+	var image *dto.Image
+	if userAddress.User.Image != nil {
+		image = &dto.Image{
+			Name:        userAddress.User.Image.Name,
+			Url:         utils.PString(fmt.Sprintf("%s://%s/v1/image/%s", *idto.Protocol, *idto.HostName, *userAddress.User.ImageID)),
+			ContentType: userAddress.User.Image.ContentType,
+		}
+	}
+
+	user := dto.GetUsersOutDto{
+		ID:          userAddress.UserID,
+		Username:    userAddress.User.Username,
+		Name:        userAddress.User.Name,
+		Email:       userAddress.User.Email,
+		Birthdate:   userAddress.User.BirthDate,
+		PhoneNumber: userAddress.User.PhoneNumber,
+		Image:       image,
+	}
+
+	response.User = &user
+	response.Street = userAddress.Street
+
+	return &response, nil
 }
