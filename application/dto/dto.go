@@ -3,6 +3,7 @@ package dto
 import (
 	"time"
 
+	"github.com/robertobff/nexpos/domain/entity"
 	"github.com/robertobff/nexpos/domain/errors"
 )
 
@@ -97,8 +98,8 @@ type SaveUserInDto struct {
 }
 
 type GetUsersInDto struct {
-	Protocol *string `json:"protocol"`
-	HostName *string `json:"host_name"`
+	Protocol *string `json:"-"`
+	HostName *string `json:"-"`
 }
 type GetUsersOutDto struct {
 	ID          *string    `json:"id"`
@@ -148,4 +149,51 @@ type CreateStreetInDto struct {
 
 type FindCountryByIdentifierInDto struct {
 	Identifier *string `json:"identifier"`
+}
+
+type GetUserAddressInDto struct {
+	UserID   *string `json:"-"`
+	Protocol *string `json:"-"`
+	HostName *string `json:"-"`
+}
+
+type GetUserAddressOutDto struct {
+	User   *GetUsersOutDto `json:"user"`
+	Street *entity.Street  `json:"street"`
+}
+
+type CreateUserAddressInDto struct {
+	UserID       *string            `json:"-"`
+	CountryID    *string            `json:"-"`
+	ActionBrazil *ActionBrazilInDto `json:"action_brazil"`
+	ActionOthers *ActionOthersInDto `json:"action_others"`
+}
+
+type ActionBrazilInDto struct {
+	CountryID *string `json:"-"`
+	UserID    *string `json:"-"`
+	Cep       *string `json:"cep"`
+	Number    *string `json:"number"`
+}
+
+type ActionOthersInDto struct {
+	CountryID  *string   `json:"-"`
+	UserID     *string   `json:"-"`
+	StateID    *string   `json:"state_id"`
+	DistrictID *string   `json:"district_id"`
+	District   *District `json:"district"`
+	StreetID   *string   `json:"street_id"`
+	Street     *Street   `json:"street"`
+}
+
+type District struct {
+	Name   *string `json:"name"`
+	CityID *string `json:"city_id"`
+}
+
+type Street struct {
+	Name       *string `json:"name"`
+	ZipCode    *string `json:"zip_code"`
+	Number     *string `json:"number"`
+	DistrictID *string `json:"district_id"`
 }
