@@ -1,9 +1,10 @@
 package firebase
 
 import (
-	"cloud.google.com/go/firestore"
 	"context"
 	"encoding/json"
+
+	"cloud.google.com/go/firestore"
 	"firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/auth"
 	"go.uber.org/fx"
