@@ -72,6 +72,26 @@ The project follows **Clean Architecture** principles:
 
 ---
 
+
+## 🔧 Configuration
+
+Environment variables are defined in `.env`.  
+Example:
+
+```env
+HTTP_PORT=3000
+HTTP_DISABLE_STARTUP_MESSAGE=true
+
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=secret
+POSTGRES_NAME=nexpos
+
+#another enviroments...
+```
+---
+
 ## ⚙️ Installation
 
 ```bash
@@ -83,21 +103,6 @@ cd nexpos
 
 # Run with Docker
 make up 
-```
-
----
-
-## 🔧 Configuration
-
-Environment variables are defined in `.env`.  
-Example:
-
-```env
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASS=secret
-DB_NAME=nexpos
 ```
 
 ---
