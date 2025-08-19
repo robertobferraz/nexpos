@@ -4,8 +4,16 @@ definitions:
     properties:
       cep:
         type: string
-      number:
+      complement:
         type: string
+      is_billing:
+        type: boolean
+      is_default:
+        type: boolean
+      is_shipping:
+        type: boolean
+      number:
+        type: integer
     type: object
   dto.ActionOthersInDto:
     properties:
@@ -37,7 +45,7 @@ definitions:
       message:
         type: string
     type: object
-  dto.CreateUserAddressInDto:
+  dto.CreateAddressInDto:
     properties:
       action_brazil:
         $ref: '#/definitions/dto.ActionBrazilInDto'
@@ -76,6 +84,45 @@ definitions:
       name:
         type: string
     type: object
+  dto.FindUserOutDto:
+    properties:
+      birth_date:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      image:
+        $ref: '#/definitions/dto.Image'
+      name:
+        type: string
+      phone_number:
+        type: string
+      role:
+        $ref: '#/definitions/entity.RoleType'
+      username:
+        type: string
+    type: object
+  dto.GetAddressOutDto:
+    properties:
+      street:
+        $ref: '#/definitions/entity.Street'
+      user:
+        $ref: '#/definitions/dto.GetUsersOutDto'
+    type: object
+  dto.GetCategoriesOutDto:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      image:
+        $ref: '#/definitions/dto.Image'
+      name:
+        type: string
+      parent:
+        $ref: '#/definitions/dto.Parent'
+    type: object
   dto.GetUsersOutDto:
     properties:
       birth_date:
@@ -90,6 +137,8 @@ definitions:
         type: string
       phone_number:
         type: string
+      role:
+        $ref: '#/definitions/entity.RoleType'
       username:
         type: string
     type: object
@@ -102,6 +151,17 @@ definitions:
       url:
         type: string
     type: object
+  dto.Parent:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      image:
+        $ref: '#/definitions/dto.Image'
+      name:
+        type: string
+    type: object
   dto.Street:
     properties:
       district_id:
@@ -112,6 +172,31 @@ definitions:
         type: string
       zip_code:
         type: string
+    type: object
+  entity.Address:
+    properties:
+      complement:
+        type: string
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      id:
+        type: string
+      is_billing:
+        type: boolean
+      is_default:
+        type: boolean
+      is_shipping:
+        type: boolean
+      number:
+        type: integer
+      street:
+        $ref: '#/definitions/entity.Street'
+      updated_at:
+        type: string
+      user:
+        $ref: '#/definitions/entity.User'
     type: object
   entity.Category:
     properties:
@@ -127,6 +212,8 @@ definitions:
         $ref: '#/definitions/entity.Image'
       name:
         type: string
+      parent:
+        $ref: '#/definitions/entity.Category'
       updated_at:
         type: string
     type: object
@@ -136,8 +223,6 @@ definitions:
         type: string
       deleted_at:
         type: string
-      external_id:
-        type: integer
       id:
         type: string
       name:
@@ -159,8 +244,6 @@ definitions:
         type: string
       emoji:
         type: string
-      external_id:
-        type: integer
       id:
         type: string
       iso2:
@@ -204,6 +287,16 @@ definitions:
       updated_at:
         type: string
     type: object
+  entity.RoleType:
+    enum:
+    - 0
+    - 1
+    - 2
+    type: integer
+    x-enum-varnames:
+    - USER_ROLE_TYPE_ADMIN
+    - USER_ROLE_TYPE_SALER
+    - USER_ROLE_TYPE_COSTUMER
   entity.State:
     properties:
       country:
@@ -212,8 +305,6 @@ definitions:
         type: string
       deleted_at:
         type: string
-      external_id:
-        type: integer
       id:
         type: string
       iso2:
@@ -235,8 +326,6 @@ definitions:
         type: string
       name:
         type: string
-      number:
-        type: string
       updated_at:
         type: string
       zip_code:
@@ -245,8 +334,6 @@ definitions:
   entity.User:
     properties:
       birth_date:
-        type: string
-      cpf:
         type: string
       created_at:
         type: string
@@ -264,25 +351,12 @@ definitions:
         type: string
       phone_number:
         type: string
+      role:
+        $ref: '#/definitions/entity.RoleType'
       updated_at:
         type: string
       username:
         type: string
-    type: object
-  entity.UserAddress:
-    properties:
-      created_at:
-        type: string
-      deleted_at:
-        type: string
-      id:
-        type: string
-      street:
-        $ref: '#/definitions/entity.Street'
-      updated_at:
-        type: string
-      user:
-        $ref: '#/definitions/entity.User'
     type: object
   errors.ErrorCode:
     enum:
@@ -309,6 +383,75 @@ info:
   title: Food Swagger API
   version: "1.0"
 paths:
+  /address:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves the address of the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Base'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.GetAddressOutDto'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.BaseError'
+      security:
+      - ApiKeyAuth: []
+      summary: Get address
+      tags:
+      - Address
+  /address/{id}:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new address for the authenticated user
+      parameters:
+      - description: country ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Address data. If the selected country is Brazil, you may set
+          action_others to null and only fill in the action_brazil fields.
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateAddressInDto'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Base'
+            - properties:
+                data:
+                  $ref: '#/definitions/entity.Address'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.BaseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.BaseError'
+      security:
+      - ApiKeyAuth: []
+      summary: Create address
+      tags:
+      - Address
   /auth/disable:
     delete:
       description: Endpoint to delete a user by ID
@@ -360,6 +503,34 @@ paths:
       tags:
       - Auth
   /category:
+    get:
+      consumes:
+      - application/json
+      description: Returns a list of all categories with optional parent and image
+        data
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Base'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.GetCategoriesOutDto'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.BaseError'
+      security:
+      - ApiKeyAuth: []
+      summary: List all categories
+      tags:
+      - Category
     post:
       consumes:
       - multipart/form-data
@@ -401,6 +572,42 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Create a new category
+      tags:
+      - Category
+  /category/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Returns details of a specific category by its ID
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.Base'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.GetCategoriesOutDto'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.BaseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.BaseError'
+      security:
+      - ApiKeyAuth: []
+      summary: Find category by ID
       tags:
       - Category
   /image/{id}:
@@ -534,11 +741,17 @@ paths:
       summary: Update user
       tags:
       - User
-  /user/address:
+  /user/{id}:
     get:
       consumes:
       - application/json
-      description: Retrieves the address of the authenticated user
+      description: Retrieves the details of a specific user by their ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -549,49 +762,10 @@ paths:
             - $ref: '#/definitions/dto.Base'
             - properties:
                 data:
-                  $ref: '#/definitions/entity.User'
+                  $ref: '#/definitions/dto.FindUserOutDto'
               type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dto.BaseError'
-      security:
-      - ApiKeyAuth: []
-      summary: Get user address
-      tags:
-      - User
-  /user/address/{id}:
-    post:
-      consumes:
-      - application/json
-      description: Creates a new address for the authenticated user
-      parameters:
-      - description: country ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: User address data. If the selected country is Brazil, you may
-          set action_others to null and only fill in the action_brazil fields.
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dto.CreateUserAddressInDto'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            allOf:
-            - $ref: '#/definitions/dto.Base'
-            - properties:
-                data:
-                  $ref: '#/definitions/entity.UserAddress'
-              type: object
-        "400":
-          description: Bad Request
+        "404":
+          description: Not Found
           schema:
             $ref: '#/definitions/dto.BaseError'
         "500":
@@ -600,7 +774,7 @@ paths:
             $ref: '#/definitions/dto.BaseError'
       security:
       - ApiKeyAuth: []
-      summary: Create user address
+      summary: Find user by ID
       tags:
       - User
 securityDefinitions:

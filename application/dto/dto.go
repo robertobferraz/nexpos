@@ -19,6 +19,13 @@ type BaseError struct {
 	Message *string          `json:"message"`
 }
 
+type BuildImageInDto struct {
+	Hostname *string       `json:"hostname" validate:"required"`
+	Protocol *string       `json:"protocol" validate:"required"`
+	ImageID  *string       `json:"image_id" validate:"required"`
+	Image    *entity.Image `json:"image" validate:"required"`
+}
+
 type Image struct {
 	Name        *string `json:"name"`
 	Data        *[]byte `json:"-"`
@@ -49,6 +56,7 @@ type CreateCategoryInDto struct {
 	Name        *string `json:"name"`
 	Image       *Image  `json:"image"`
 	Description *string `json:"description"`
+	ParentID    *string `json:"parent_id"`
 }
 
 type DeleteCategoryInDto struct {
@@ -61,6 +69,8 @@ type CreateItemInDto struct {
 	Description *string  `json:"description"`
 	Price       *float64 `json:"price"`
 	CategoryID  *string  `json:"category_id"`
+	Stock       *uint    `json:"stock"`
+	Sku         *string  `json:"sku"`
 }
 
 type DeleteItemInDto struct {
@@ -68,10 +78,15 @@ type DeleteItemInDto struct {
 }
 
 type CreateDiscountInDto struct {
-	ItemID     *string    `json:"item_id"`
-	CategoryID *string    `json:"category_id"`
-	Value      *float64   `json:"value"`
-	Date       *time.Time `json:"date"`
+	ItemID       *string              `json:"item_id"`
+	CategoryID   *string              `json:"category_id"`
+	Value        *float64             `json:"value"`
+	StartDate    *time.Time           `json:"start_date"`
+	EndDate      *time.Time           `json:"end_date"`
+	Code         *string              `json:"code"`
+	MaxUses      *float64             `json:"max_uses"`
+	MinAmount    *float64             `json:"min_amount"`
+	DiscountType *entity.DiscountType `json:"discount_type"`
 }
 
 type DeleteDiscountInDto struct {
@@ -102,13 +117,14 @@ type GetUsersInDto struct {
 	HostName *string `json:"-"`
 }
 type GetUsersOutDto struct {
-	ID          *string    `json:"id"`
-	Username    *string    `json:"username"`
-	Name        *string    `json:"name"`
-	Email       *string    `json:"email"`
-	Birthdate   *time.Time `json:"birth_date"`
-	PhoneNumber *string    `json:"phone_number"`
-	Image       *Image     `json:"image"`
+	ID          *string          `json:"id"`
+	Username    *string          `json:"username"`
+	Name        *string          `json:"name"`
+	Email       *string          `json:"email"`
+	Birthdate   *time.Time       `json:"birth_date"`
+	PhoneNumber *string          `json:"phone_number"`
+	Image       *Image           `json:"image"`
+	Role        *entity.RoleType `json:"role"`
 }
 
 type CreateCountryInDto struct {
@@ -144,25 +160,24 @@ type CreateStreetInDto struct {
 	Name       *string `json:"name"`
 	DistrictID *string `json:"district_id"`
 	ZipCode    *string `json:"zip_code"`
-	Number     *string `json:"number"`
 }
 
 type FindCountryByIdentifierInDto struct {
 	Identifier *string `json:"identifier"`
 }
 
-type GetUserAddressInDto struct {
+type GetAddressInDto struct {
 	UserID   *string `json:"-"`
 	Protocol *string `json:"-"`
 	HostName *string `json:"-"`
 }
 
-type GetUserAddressOutDto struct {
+type GetAddressOutDto struct {
 	User   *GetUsersOutDto `json:"user"`
 	Street *entity.Street  `json:"street"`
 }
 
-type CreateUserAddressInDto struct {
+type CreateAddressInDto struct {
 	UserID       *string            `json:"-"`
 	CountryID    *string            `json:"-"`
 	ActionBrazil *ActionBrazilInDto `json:"action_brazil"`
@@ -170,10 +185,14 @@ type CreateUserAddressInDto struct {
 }
 
 type ActionBrazilInDto struct {
-	CountryID *string `json:"-"`
-	UserID    *string `json:"-"`
-	Cep       *string `json:"cep"`
-	Number    *string `json:"number"`
+	CountryID  *string `json:"-"`
+	UserID     *string `json:"-"`
+	Cep        *string `json:"cep"`
+	Number     *uint   `json:"number"`
+	Complement *string `json:"complement"`
+	IsBilling  *bool   `json:"is_billing"`
+	IsShipping *bool   `json:"is_shipping"`
+	IsDefault  *bool   `json:"is_default"`
 }
 
 type ActionOthersInDto struct {
@@ -196,4 +215,44 @@ type Street struct {
 	ZipCode    *string `json:"zip_code"`
 	Number     *string `json:"number"`
 	DistrictID *string `json:"district_id"`
+}
+
+type FindUserInDto struct {
+	ID       *string `json:"id"`
+	Protocol *string `json:"protocol"`
+	HostName *string `json:"host_name"`
+}
+
+type FindUserOutDto struct {
+	*GetUsersOutDto
+}
+
+type GetCategoriesInDto struct {
+	Protocol *string `json:"-"`
+	HostName *string `json:"-"`
+}
+
+type Parent struct {
+	ID          *string `json:"id"`
+	Name        *string `json:"name"`
+	Description *string `json:"description"`
+	*Image      `json:"image"`
+}
+
+type GetCategoriesOutDto struct {
+	ID          *string `json:"id"`
+	Name        *string `json:"name"`
+	Description *string `json:"description"`
+	Parent      *Parent `json:"parent"`
+	*Image      `json:"image"`
+}
+
+type FindCategoryInDto struct {
+	ID       *string `json:"id"`
+	Protocol *string `json:"-"`
+	HostName *string `json:"-"`
+}
+
+type FindCategoryOutDto struct {
+	*GetCategoriesOutDto
 }

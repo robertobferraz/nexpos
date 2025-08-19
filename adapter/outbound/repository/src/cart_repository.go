@@ -14,37 +14,37 @@ import (
 	"go.uber.org/zap"
 )
 
-var UserAddressModule = fx.Module(
-	"user_address_repository",
-	fx.Provide(NewUserAddressRepositorySrc),
-	fx.Provide(func(p *UserAddressRepositorySrc) repository.UserAddressRepository { return p }),
+var CartModule = fx.Module(
+	"address_repository",
+	fx.Provide(NewCartRepositorySrc),
+	fx.Provide(func(p *CartRepositorySrc) repository.CartRepository { return p }),
 )
 
-type UserAddressRepositorySrc struct {
+type CartRepositorySrc struct {
 	pg     *postgres.Postgres
 	logger *zap.SugaredLogger
 }
 
-func NewUserAddressRepositorySrc(
+func NewCartRepositorySrc(
 	pg *postgres.Postgres,
 	logger *zap.SugaredLogger,
-) (*UserAddressRepositorySrc, error) {
-	return &UserAddressRepositorySrc{
+) (*CartRepositorySrc, error) {
+	return &CartRepositorySrc{
 		pg:     pg,
 		logger: logger,
 	}, nil
 }
 
-func (r *UserAddressRepositorySrc) Create(ctx context.Context, userAddress *entity.UserAddress) error {
-	err := r.pg.Db.WithContext(ctx).Create(userAddress).Error
+func (r *CartRepositorySrc) Create(ctx context.Context, cart *entity.Cart) error {
+	err := r.pg.Db.WithContext(ctx).Create(cart).Error
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *UserAddressRepositorySrc) Get(ctx context.Context, query *dto.GormQuery) (*[]entity.UserAddress, error) {
-	var items []entity.UserAddress
+func (r *CartRepositorySrc) Get(ctx context.Context, query *dto.GormQuery) (*[]entity.Cart, error) {
+	var items []entity.Cart
 	gormDB := QueryConstructor(r.pg.Db, query)
 	result := gormDB.WithContext(ctx).Find(&items)
 	if result.Error != nil {
@@ -57,8 +57,8 @@ func (r *UserAddressRepositorySrc) Get(ctx context.Context, query *dto.GormQuery
 	return &items, nil
 }
 
-func (r *UserAddressRepositorySrc) Find(ctx context.Context, query *dto.GormQuery) (*entity.UserAddress, error) {
-	var items entity.UserAddress
+func (r *CartRepositorySrc) Find(ctx context.Context, query *dto.GormQuery) (*entity.Cart, error) {
+	var items entity.Cart
 	gormDB := QueryConstructor(r.pg.Db, query)
 	result := gormDB.WithContext(ctx).Find(&items)
 	if result.Error != nil {
@@ -76,16 +76,16 @@ func (r *UserAddressRepositorySrc) Find(ctx context.Context, query *dto.GormQuer
 	return &items, nil
 }
 
-func (r *UserAddressRepositorySrc) Save(ctx context.Context, userAddress *entity.UserAddress) error {
-	result := r.pg.Db.WithContext(ctx).Save(userAddress)
+func (r *CartRepositorySrc) Save(ctx context.Context, cart *entity.Cart) error {
+	result := r.pg.Db.WithContext(ctx).Save(cart)
 	if result.Error != nil {
 		return result.Error
 	}
 	return nil
 }
 
-func (r *UserAddressRepositorySrc) Delete(ctx context.Context, query *dto.GormQuery) error {
-	var item entity.UserAddress
+func (r *CartRepositorySrc) Delete(ctx context.Context, query *dto.GormQuery) error {
+	var item entity.Cart
 	gormDB := QueryConstructor(r.pg.Db, query)
 	result := gormDB.WithContext(ctx).Delete(&item)
 	if result.Error != nil {

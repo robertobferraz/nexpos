@@ -25,8 +25,8 @@ var Module = fx.Module(
 
 type Usecase struct {
 	userRepo        repository.UserRepository
-	userOrdersRepo  repository.UserOrdersRepository
-	userAddressRepo repository.UserAddressRepository
+	userOrdersRepo  repository.OrderRepository
+	userAddressRepo repository.AddressRepository
 	itemRepo        repository.ItemRepository
 	categoryRepo    repository.CategoryRepository
 	discountRepo    repository.DiscountRepository
@@ -36,6 +36,11 @@ type Usecase struct {
 	districtRepo    repository.DistrictRepository
 	streetRepo      repository.StreetRepository
 	imageRepo       repository.ImageRepository
+	orderItemRepo   repository.OrderItemRepository
+	cartRepo        repository.CartRepository
+	reviewRepo      repository.ReviewRepository
+	cartItemRepo    repository.CartItemRepository
+	paymentRepo     repository.PaymentRepository
 	openCep         *openCep.Api
 	fb              *auth.Firebase
 	schedule        *scheduler.Scheduler
@@ -44,7 +49,7 @@ type Usecase struct {
 
 func NewUsecase(
 	userRepo repository.UserRepository,
-	userOrdersRepo repository.UserOrdersRepository,
+	userOrdersRepo repository.OrderRepository,
 	itemRepo repository.ItemRepository,
 	categoryRepo repository.CategoryRepository,
 	countryRepo repository.CountryRepository,
@@ -53,7 +58,12 @@ func NewUsecase(
 	districtRepo repository.DistrictRepository,
 	streetRepo repository.StreetRepository,
 	imageRepo repository.ImageRepository,
-	userAddressRepo repository.UserAddressRepository,
+	userAddressRepo repository.AddressRepository,
+	orderItemRepo repository.OrderItemRepository,
+	cartRepo repository.CartRepository,
+	reviewRepo repository.ReviewRepository,
+	cartItemRepo repository.CartItemRepository,
+	paymentRepo repository.PaymentRepository,
 	openCep *openCep.Api,
 	fb *auth.Firebase,
 	schedule *scheduler.Scheduler,
@@ -71,6 +81,11 @@ func NewUsecase(
 		streetRepo:      streetRepo,
 		imageRepo:       imageRepo,
 		userAddressRepo: userAddressRepo,
+		orderItemRepo:   orderItemRepo,
+		cartRepo:        cartRepo,
+		reviewRepo:      reviewRepo,
+		cartItemRepo:    cartItemRepo,
+		paymentRepo:     paymentRepo,
 		openCep:         openCep,
 		fb:              fb,
 		schedule:        schedule,
@@ -334,13 +349,12 @@ func (u *Usecase) GetUsers(ctx context.Context, idto *dto.GetUsersInDto) (*[]dto
 	var resp []dto.GetUsersOutDto
 	for _, value := range *users {
 		var user dto.GetUsersOutDto
-		if value.Image != nil {
-			user.Image = &dto.Image{
-				Name:        value.Image.Name,
-				Url:         utils.PString(fmt.Sprintf("%s://%s/v1/image/%s", *idto.Protocol, *idto.HostName, *value.ImageID)),
-				ContentType: value.Image.ContentType,
-			}
-		}
+		user.Image = u.buildImageDTO(&dto.BuildImageInDto{
+			Hostname: idto.HostName,
+			Protocol: idto.Protocol,
+			ImageID:  value.ImageID,
+			Image:    value.Image,
+		})
 		user.ID = value.ID
 		user.Name = value.Name
 		user.Email = value.Email
@@ -365,7 +379,28 @@ func (u *Usecase) CreateCategory(ctx context.Context, idto *dto.CreateCategoryIn
 		}
 	}
 
-	category, err := entity.NewCategory(idto.Name, idto.Description, image)
+	var parent *entity.Category
+	if idto.ParentID != nil {
+		parent, err = u.categoryRepo.Find(ctx, &dtoDomain.GormQuery{
+			Where: &[]dtoDomain.GormWhere{
+				{
+					Column:    "id",
+					Condition: "=",
+					Value:     idto.ParentID,
+				},
+			},
+		})
+		if err != nil {
+			u.logger.Errorw("error while getting category", "error: ", err)
+			return nil, err
+		}
+	}
+
+	if parent == nil {
+		return nil, errors.New("parent not found")
+	}
+
+	category, err := entity.NewCategory(idto.Name, idto.Description, image, parent)
 	if err != nil {
 		u.logger.Errorw("error while creating category", "error: ", err)
 		return nil, err
@@ -448,7 +483,7 @@ func (u *Usecase) CreateItem(ctx context.Context, idto *dto.CreateItemInDto) (*e
 		}
 	}
 
-	item, err := entity.NewItem(idto.Name, idto.Description, idto.Price, category, image)
+	item, err := entity.NewItem(idto.Name, idto.Description, idto.Price, category, image, idto.Stock, idto.Sku)
 	if err != nil {
 		u.logger.Errorw("error while creating item", "error: ", err)
 		return nil, err
@@ -538,7 +573,17 @@ func (u *Usecase) CreateDiscount(ctx context.Context, idto *dto.CreateDiscountIn
 		}
 	}
 
-	discount, err := entity.NewDiscount(category, item, idto.Date, idto.Value)
+	discount, err := entity.NewDiscount(
+		idto.Code,
+		idto.Value,
+		idto.MinAmount,
+		idto.MaxUses,
+		idto.DiscountType,
+		idto.StartDate,
+		idto.EndDate,
+		category,
+		item,
+	)
 	if err != nil {
 		u.logger.Errorw("error while creating discount", "error: ", err)
 		return nil, err
@@ -730,7 +775,7 @@ func (u *Usecase) CreateStreet(ctx context.Context, idto *dto.CreateStreetInDto)
 		return errors.New("district not found")
 	}
 
-	street, err := entity.NewStreet(idto.Name, idto.ZipCode, idto.Number, district)
+	street, err := entity.NewStreet(idto.Name, idto.ZipCode, district)
 	if err != nil {
 		u.logger.Errorw("error while creating street", "error: ", err)
 		return err
@@ -769,7 +814,7 @@ func (u *Usecase) FindCountryByIdentifier(ctx context.Context, idto *dto.FindCou
 	return country, nil
 }
 
-func (u *Usecase) CreateUserAddressCondition(ctx context.Context, idto *dto.CreateUserAddressInDto) (*entity.UserAddress, error) {
+func (u *Usecase) CreateUserAddressCondition(ctx context.Context, idto *dto.CreateAddressInDto) (*entity.Address, error) {
 	country, err := u.countryRepo.Find(ctx, &dtoDomain.GormQuery{
 		Where: &[]dtoDomain.GormWhere{
 			{
@@ -805,7 +850,7 @@ func (u *Usecase) CreateUserAddressCondition(ctx context.Context, idto *dto.Crea
 	}
 }
 
-func (u *Usecase) actionBrazil(ctx context.Context, idto *dto.ActionBrazilInDto) (*entity.UserAddress, error) {
+func (u *Usecase) actionBrazil(ctx context.Context, idto *dto.ActionBrazilInDto) (*entity.Address, error) {
 	country, err := u.countryRepo.Find(ctx, &dtoDomain.GormQuery{
 		Where: &[]dtoDomain.GormWhere{
 			{
@@ -957,19 +1002,13 @@ func (u *Usecase) actionBrazil(ctx context.Context, idto *dto.ActionBrazilInDto)
 		var newStreet *entity.Street
 		if street == nil {
 			existStreet = false
-			newStreet, err = entity.NewStreet(resp.Logradouro, idto.Cep, idto.Number, district)
-			if err != nil {
-				u.logger.Errorw("error while creating street", "error: ", err)
-				return nil, err
-			}
-		} else if street.Number != idto.Number {
-			newStreet, err = entity.NewStreet(resp.Logradouro, idto.Cep, idto.Number, district)
+			newStreet, err = entity.NewStreet(resp.Logradouro, idto.Cep, district)
 			if err != nil {
 				u.logger.Errorw("error while creating street", "error: ", err)
 				return nil, err
 			}
 		} else if street.ZipCode != idto.Cep {
-			newStreet, err = entity.NewStreet(resp.Logradouro, idto.Cep, idto.Number, district)
+			newStreet, err = entity.NewStreet(resp.Logradouro, idto.Cep, district)
 			if err != nil {
 				u.logger.Errorw("error while creating street", "error: ", err)
 				return nil, err
@@ -988,7 +1027,15 @@ func (u *Usecase) actionBrazil(ctx context.Context, idto *dto.ActionBrazilInDto)
 			street.District.City.State = state
 		}
 
-		newUserAddress, err := entity.NewUserAddress(user, street)
+		newUserAddress, err := entity.NewAddress(
+			user,
+			street,
+			idto.Number,
+			idto.Complement,
+			idto.IsBilling,
+			idto.IsShipping,
+			idto.IsDefault,
+		)
 		if err != nil {
 			u.logger.Errorw("error while creating user address", "error: ", err)
 			return nil, err
@@ -1006,11 +1053,11 @@ func (u *Usecase) actionBrazil(ctx context.Context, idto *dto.ActionBrazilInDto)
 	}
 }
 
-func (u *Usecase) actionOthers(ctx context.Context, idto *dto.ActionOthersInDto) (*entity.UserAddress, error) {
+func (u *Usecase) actionOthers(ctx context.Context, idto *dto.ActionOthersInDto) (*entity.Address, error) {
 	return nil, nil
 }
 
-func (u *Usecase) GetUserAddress(ctx context.Context, idto *dto.GetUserAddressInDto) (*dto.GetUserAddressOutDto, error) {
+func (u *Usecase) GetAddress(ctx context.Context, idto *dto.GetAddressInDto) (*dto.GetAddressOutDto, error) {
 	userAddress, err := u.userAddressRepo.Find(ctx, &dtoDomain.GormQuery{
 		Where: &[]dtoDomain.GormWhere{
 			{
@@ -1039,15 +1086,13 @@ func (u *Usecase) GetUserAddress(ctx context.Context, idto *dto.GetUserAddressIn
 		return nil, errors.New("user address not found")
 	}
 
-	var response dto.GetUserAddressOutDto
-	var image *dto.Image
-	if userAddress.User.Image != nil {
-		image = &dto.Image{
-			Name:        userAddress.User.Image.Name,
-			Url:         utils.PString(fmt.Sprintf("%s://%s/v1/image/%s", *idto.Protocol, *idto.HostName, *userAddress.User.ImageID)),
-			ContentType: userAddress.User.Image.ContentType,
-		}
-	}
+	var response dto.GetAddressOutDto
+	image := u.buildImageDTO(&dto.BuildImageInDto{
+		Hostname: idto.HostName,
+		Protocol: idto.Protocol,
+		ImageID:  userAddress.User.ImageID,
+		Image:    userAddress.User.Image,
+	})
 
 	user := dto.GetUsersOutDto{
 		ID:          userAddress.UserID,
@@ -1063,4 +1108,170 @@ func (u *Usecase) GetUserAddress(ctx context.Context, idto *dto.GetUserAddressIn
 	response.Street = userAddress.Street
 
 	return &response, nil
+}
+
+func (u *Usecase) FindUserByID(ctx context.Context, idto *dto.FindUserInDto) (*dto.FindUserOutDto, error) {
+	user, err := u.userRepo.Find(ctx, &dtoDomain.GormQuery{
+		Where: &[]dtoDomain.GormWhere{
+			{
+				Column:    "id",
+				Condition: "=",
+				Value:     idto.ID,
+			},
+		},
+	})
+
+	if err != nil {
+		u.logger.Errorw("error while getting user from database", "error: ", err)
+		return nil, err
+	}
+
+	if user == nil {
+		u.logger.Warnw("user not found", "id", idto.ID)
+		return nil, errors.New("user not found")
+	}
+
+	var response dto.FindUserOutDto
+	image := u.buildImageDTO(&dto.BuildImageInDto{
+		Hostname: idto.HostName,
+		Protocol: idto.Protocol,
+		ImageID:  user.ImageID,
+		Image:    user.Image,
+	})
+
+	response.ID = user.ID
+	response.Name = user.Name
+	response.Email = user.Email
+	response.Birthdate = user.BirthDate
+	response.PhoneNumber = user.PhoneNumber
+	response.Username = user.Username
+	response.Image = image
+	response.Role = user.Role
+
+	return &response, nil
+}
+
+func (u *Usecase) GetCategories(ctx context.Context, idto *dto.GetCategoriesInDto) (*[]dto.GetCategoriesOutDto, error) {
+	categories, err := u.categoryRepo.Get(ctx, &dtoDomain.GormQuery{
+		Preload: &[]dtoDomain.GormPreload{
+			{Field: "Image"},
+			{Field: "Parent.Image"},
+		},
+	})
+	if err != nil {
+		u.logger.Errorw("error while getting categories", "error: ", err)
+		return nil, err
+	}
+
+	if categories == nil || len(*categories) == 0 {
+		return nil, errors.New("category not found")
+	}
+
+	var response []dto.GetCategoriesOutDto
+	for _, category := range *categories {
+		resp := dto.GetCategoriesOutDto{
+			ID:          category.ID,
+			Name:        category.Name,
+			Description: category.Description,
+			Image: u.buildImageDTO(&dto.BuildImageInDto{
+				Hostname: idto.HostName,
+				Protocol: idto.Protocol,
+				ImageID:  category.ImageID,
+				Image:    category.Image,
+			}),
+		}
+
+		if category.Parent != nil {
+			resp.Parent = &dto.Parent{
+				ID:          category.ParentID,
+				Name:        category.Parent.Name,
+				Description: category.Parent.Description,
+				Image: u.buildImageDTO(&dto.BuildImageInDto{
+					Hostname: idto.HostName,
+					Protocol: idto.Protocol,
+					ImageID:  category.Parent.ImageID,
+					Image:    category.Parent.Image,
+				}),
+			}
+		}
+
+		response = append(response, resp)
+	}
+
+	return &response, nil
+}
+
+func (u *Usecase) FindCategory(ctx context.Context, idto *dto.FindCategoryInDto) (*dto.FindCategoryOutDto, error) {
+	category, err := u.categoryRepo.Find(ctx, &dtoDomain.GormQuery{
+		Where: &[]dtoDomain.GormWhere{
+			{
+				Column:    "id",
+				Condition: "=",
+				Value:     idto.ID,
+			},
+		},
+		Preload: &[]dtoDomain.GormPreload{
+			{Field: "Image"},
+			{Field: "Parent.Image"},
+		},
+	})
+
+	if err != nil {
+		u.logger.Errorw("error while getting category from database", "error: ", err)
+		return nil, err
+	}
+
+	if category == nil {
+		u.logger.Warnw("category not found", "id", idto.ID)
+		return nil, errors.New("category not found")
+	}
+
+	var response dto.FindCategoryOutDto
+	var image *dto.Image
+	if category.Image != nil {
+		image = u.buildImageDTO(&dto.BuildImageInDto{
+			Hostname: idto.HostName,
+			Protocol: idto.Protocol,
+			ImageID:  category.ImageID,
+			Image:    category.Image,
+		})
+	}
+	var parentImage *dto.Image
+	var parent *dto.Parent
+	if category.Parent != nil {
+		if category.Parent.Image != nil {
+			parentImage = u.buildImageDTO(&dto.BuildImageInDto{
+				Hostname: idto.HostName,
+				Protocol: idto.Protocol,
+				ImageID:  category.ImageID,
+				Image:    category.Image,
+			})
+		}
+		parent = &dto.Parent{
+			ID:          category.ParentID,
+			Name:        category.Parent.Name,
+			Description: category.Parent.Description,
+			Image:       parentImage,
+		}
+	}
+
+	response.ID = category.ID
+	response.Name = category.Name
+	response.Description = category.Description
+	response.Image = image
+	response.Parent = parent
+
+	return &response, nil
+}
+
+func (u *Usecase) buildImageDTO(idto *dto.BuildImageInDto) *dto.Image {
+	if idto.Image == nil || idto.ImageID == nil {
+		return nil
+	}
+
+	return &dto.Image{
+		Name:        idto.Image.Name,
+		Url:         utils.PString(fmt.Sprintf("%s://%s/v1/image/%s", *idto.Protocol, *idto.Hostname, *idto.ImageID)),
+		ContentType: idto.Image.ContentType,
+	}
 }

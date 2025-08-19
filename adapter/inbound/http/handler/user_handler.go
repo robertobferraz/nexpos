@@ -40,11 +40,8 @@ func NewUserHandler(
 func (h *UserHandler) RegisterRoutes(r fiber.Router) {
 	user := r.Group("/user", h.authMd.Require, h.userMd.CheckUser)
 	user.Get("/", h.GetUsers)
+	user.Get("/:id", h.FindUserByID)
 	user.Put("/", h.UpdateUser)
-
-	address := user.Group("/address", h.authMd.Require, h.userMd.CheckUser)
-	address.Post("/:id", h.CreateUserAddress)
-	address.Get("/", h.GetUserAddress)
 }
 
 // GetUsers godoc
@@ -62,6 +59,45 @@ func (h *UserHandler) GetUsers(c *fiber.Ctx) error {
 		Protocol: utils.PString(c.Protocol()),
 		HostName: utils.PString(c.Hostname()),
 	})
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(dto.Base{
+			Success: utils.PBool(false),
+			Error: &dto.BaseError{
+				Code:    errors.ErrInternalServer,
+				Message: utils.PString(err.Error()),
+			},
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(dto.Base{
+		Success: utils.PBool(true),
+		Error:   nil,
+		Message: utils.PString("Success"),
+		Data:    user,
+	})
+}
+
+// FindUserByID godoc
+// @Summary Find user by ID
+// @Description Retrieves the details of a specific user by their ID
+// @Tags User
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param id path string true "User ID"
+// @Success 200 {object} dto.Base{data=dto.FindUserOutDto}
+// @Failure 404 {object} dto.BaseError
+// @Failure 500 {object} dto.BaseError
+// @Router /user/{id} [get]
+func (h *UserHandler) FindUserByID(c *fiber.Ctx) error {
+	id := utils.PString(c.Params("id"))
+
+	user, err := h.uc.FindUserByID(c.Context(), &dto.FindUserInDto{
+		ID:       id,
+		Protocol: utils.PString(c.Protocol()),
+		HostName: utils.PString(c.Hostname()),
+	})
+
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(dto.Base{
 			Success: utils.PBool(false),
@@ -172,98 +208,5 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 		Success: utils.PBool(true),
 		Message: utils.PString("User updated with success!"),
 		Data:    user,
-	})
-}
-
-// GetUserAddress godoc
-// @Summary Get user address
-// @Description Retrieves the address of the authenticated user
-// @Tags User
-// @Accept json
-// @Produce json
-// @Security ApiKeyAuth
-// @Success 200 {object} dto.Base{data=entity.User}
-// @Failure 500 {object} dto.BaseError
-// @Router /user/address [get]
-func (h *UserHandler) GetUserAddress(c *fiber.Ctx) error {
-	id := c.Locals("userID").(*string)
-
-	resp, err := h.uc.GetUserAddress(c.Context(), &dto.GetUserAddressInDto{
-		Protocol: utils.PString(c.Protocol()),
-		HostName: utils.PString(c.Hostname()),
-		UserID:   id,
-	})
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(dto.Base{
-			Success: utils.PBool(false),
-			Error: &dto.BaseError{
-				Code:    errors.ErrInternalServer,
-				Message: utils.PString(err.Error()),
-			},
-		})
-	}
-
-	return c.Status(fiber.StatusOK).JSON(dto.Base{
-		Success: utils.PBool(true),
-		Message: utils.PString("user address!"),
-		Data:    resp,
-	})
-}
-
-// CreateUserAddress godoc
-// @Summary Create user address
-// @Description Creates a new address for the authenticated user
-// @Tags User
-// @Accept json
-// @Produce json
-// @Security ApiKeyAuth
-// @Param id path string true "country ID"
-// @Param request body dto.CreateUserAddressInDto true "User address data. If the selected country is Brazil, you may set action_others to null and only fill in the action_brazil fields."
-// @Success 201 {object} dto.Base{data=entity.UserAddress}
-// @Failure 400 {object} dto.BaseError
-// @Failure 500 {object} dto.BaseError
-// @Router /user/address/{id} [post]
-func (h *UserHandler) CreateUserAddress(c *fiber.Ctx) error {
-	id := c.Locals("userID").(*string)
-	countryId := utils.PString(c.Params("id"))
-	var in dto.CreateUserAddressInDto
-
-	if err := c.BodyParser(&in); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(dto.Base{
-			Success: utils.PBool(false),
-			Error: &dto.BaseError{
-				Code:    errors.ErrInvalidInput,
-				Message: utils.PString(err.Error()),
-			},
-		})
-	}
-
-	in.UserID = id
-	in.CountryID = countryId
-
-	if in.ActionOthers != nil {
-		in.ActionOthers.UserID = id
-		in.ActionOthers.CountryID = countryId
-	}
-	if in.ActionBrazil != nil {
-		in.ActionBrazil.UserID = id
-		in.ActionBrazil.CountryID = countryId
-	}
-
-	resp, err := h.uc.CreateUserAddressCondition(c.Context(), &in)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(dto.Base{
-			Success: utils.PBool(false),
-			Error: &dto.BaseError{
-				Code:    errors.ErrInternalServer,
-				Message: utils.PString(err.Error()),
-			},
-		})
-	}
-
-	return c.Status(fiber.StatusCreated).JSON(dto.Base{
-		Success: utils.PBool(true),
-		Message: utils.PString("user address created with success!"),
-		Data:    resp,
 	})
 }

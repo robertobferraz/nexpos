@@ -21,9 +21,19 @@ type Item struct {
 	Price       *float64  `json:"price" valid:"-"`
 	CategoryID  *string   `json:"-" valid:"-"`
 	Category    *Category `json:"category" valid:"-"`
+	Stock       *uint     `json:"stock" valid:"-"`
+	SKU         *string   `json:"sku" valid:"-"`
 }
 
-func NewItem(name, description *string, price *float64, category *Category, image *Image) (*Item, error) {
+func NewItem(
+	name,
+	description *string,
+	price *float64,
+	category *Category,
+	image *Image,
+	stock *uint,
+	sku *string,
+) (*Item, error) {
 	var imgID *string
 	if image != nil {
 		imgID = image.ID
@@ -37,6 +47,8 @@ func NewItem(name, description *string, price *float64, category *Category, imag
 		Price:       price,
 		CategoryID:  category.ID,
 		Category:    category,
+		Stock:       stock,
+		SKU:         sku,
 	}
 
 	item.ID = utils.PString(uuid.NewV4().String())

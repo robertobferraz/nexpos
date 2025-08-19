@@ -14,13 +14,15 @@ func init() {
 
 type Category struct {
 	Base        `json:",inline" valid:"-"`
-	Name        *string `json:"name" valid:"-"`
-	Description *string `json:"description" valid:"-"`
-	ImageID     *string `json:"-" valid:"-"`
-	Image       *Image  `json:"image" valid:"-"`
+	Name        *string   `json:"name" valid:"-"`
+	Description *string   `json:"description" valid:"-"`
+	ImageID     *string   `json:"-" valid:"-"`
+	Image       *Image    `json:"image" valid:"-"`
+	ParentID    *string   `json:"-" valid:"-"`
+	Parent      *Category `json:"parent" valid:"-"`
 }
 
-func NewCategory(name, description *string, image *Image) (*Category, error) {
+func NewCategory(name, description *string, image *Image, parent *Category) (*Category, error) {
 	var imgID *string
 	if image != nil {
 		imgID = image.ID
@@ -31,6 +33,8 @@ func NewCategory(name, description *string, image *Image) (*Category, error) {
 		Description: description,
 		ImageID:     imgID,
 		Image:       image,
+		ParentID:    parent.ID,
+		Parent:      parent,
 	}
 
 	category.ID = utils.PString(uuid.NewV4().String())

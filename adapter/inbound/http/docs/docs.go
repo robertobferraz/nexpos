@@ -19,6 +19,122 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/address": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Retrieves the address of the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Address"
+                ],
+                "summary": "Get address",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dto.Base"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.GetAddressOutDto"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseError"
+                        }
+                    }
+                }
+            }
+        },
+        "/address/{id}": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Creates a new address for the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Address"
+                ],
+                "summary": "Create address",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "country ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Address data. If the selected country is Brazil, you may set action_others to null and only fill in the action_brazil fields.",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateAddressInDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dto.Base"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/entity.Address"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseError"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/disable": {
             "delete": {
                 "security": [
@@ -103,6 +219,53 @@ const docTemplate = `{
             }
         },
         "/category": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns a list of all categories with optional parent and image data",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Category"
+                ],
+                "summary": "List all categories",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dto.Base"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dto.GetCategoriesOutDto"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseError"
+                        }
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
@@ -170,6 +333,67 @@ const docTemplate = `{
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/dto.Base"
+                        }
+                    }
+                }
+            }
+        },
+        "/category/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns details of a specific category by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Category"
+                ],
+                "summary": "Find category by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Category ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dto.Base"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.GetCategoriesOutDto"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseError"
                         }
                     }
                 }
@@ -385,14 +609,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/user/address": {
+        "/user/{id}": {
             "get": {
                 "security": [
                     {
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Retrieves the address of the authenticated user",
+                "description": "Retrieves the details of a specific user by their ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -402,7 +626,16 @@ const docTemplate = `{
                 "tags": [
                     "User"
                 ],
-                "summary": "Get user address",
+                "summary": "Find user by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -415,79 +648,15 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/entity.User"
+                                            "$ref": "#/definitions/dto.FindUserOutDto"
                                         }
                                     }
                                 }
                             ]
                         }
                     },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dto.BaseError"
-                        }
-                    }
-                }
-            }
-        },
-        "/user/address/{id}": {
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Creates a new address for the authenticated user",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "User"
-                ],
-                "summary": "Create user address",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "country ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "User address data. If the selected country is Brazil, you may set action_others to null and only fill in the action_brazil fields.",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.CreateUserAddressInDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/dto.Base"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/entity.UserAddress"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/dto.BaseError"
                         }
@@ -509,8 +678,20 @@ const docTemplate = `{
                 "cep": {
                     "type": "string"
                 },
-                "number": {
+                "complement": {
                     "type": "string"
+                },
+                "is_billing": {
+                    "type": "boolean"
+                },
+                "is_default": {
+                    "type": "boolean"
+                },
+                "is_shipping": {
+                    "type": "boolean"
+                },
+                "number": {
+                    "type": "integer"
                 }
             }
         },
@@ -560,7 +741,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.CreateUserAddressInDto": {
+        "dto.CreateAddressInDto": {
             "type": "object",
             "properties": {
                 "action_brazil": {
@@ -618,6 +799,66 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.FindUserOutDto": {
+            "type": "object",
+            "properties": {
+                "birth_date": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "image": {
+                    "$ref": "#/definitions/dto.Image"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "phone_number": {
+                    "type": "string"
+                },
+                "role": {
+                    "$ref": "#/definitions/entity.RoleType"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.GetAddressOutDto": {
+            "type": "object",
+            "properties": {
+                "street": {
+                    "$ref": "#/definitions/entity.Street"
+                },
+                "user": {
+                    "$ref": "#/definitions/dto.GetUsersOutDto"
+                }
+            }
+        },
+        "dto.GetCategoriesOutDto": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "image": {
+                    "$ref": "#/definitions/dto.Image"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "parent": {
+                    "$ref": "#/definitions/dto.Parent"
+                }
+            }
+        },
         "dto.GetUsersOutDto": {
             "type": "object",
             "properties": {
@@ -639,6 +880,9 @@ const docTemplate = `{
                 "phone_number": {
                     "type": "string"
                 },
+                "role": {
+                    "$ref": "#/definitions/entity.RoleType"
+                },
                 "username": {
                     "type": "string"
                 }
@@ -658,6 +902,23 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.Parent": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "image": {
+                    "$ref": "#/definitions/dto.Image"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.Street": {
             "type": "object",
             "properties": {
@@ -672,6 +933,44 @@ const docTemplate = `{
                 },
                 "zip_code": {
                     "type": "string"
+                }
+            }
+        },
+        "entity.Address": {
+            "type": "object",
+            "properties": {
+                "complement": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "deleted_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_billing": {
+                    "type": "boolean"
+                },
+                "is_default": {
+                    "type": "boolean"
+                },
+                "is_shipping": {
+                    "type": "boolean"
+                },
+                "number": {
+                    "type": "integer"
+                },
+                "street": {
+                    "$ref": "#/definitions/entity.Street"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/entity.User"
                 }
             }
         },
@@ -696,6 +995,9 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
+                "parent": {
+                    "$ref": "#/definitions/entity.Category"
+                },
                 "updated_at": {
                     "type": "string"
                 }
@@ -709,9 +1011,6 @@ const docTemplate = `{
                 },
                 "deleted_at": {
                     "type": "string"
-                },
-                "external_id": {
-                    "type": "integer"
                 },
                 "id": {
                     "type": "string"
@@ -744,9 +1043,6 @@ const docTemplate = `{
                 },
                 "emoji": {
                     "type": "string"
-                },
-                "external_id": {
-                    "type": "integer"
                 },
                 "id": {
                     "type": "string"
@@ -814,6 +1110,19 @@ const docTemplate = `{
                 }
             }
         },
+        "entity.RoleType": {
+            "type": "integer",
+            "enum": [
+                0,
+                1,
+                2
+            ],
+            "x-enum-varnames": [
+                "USER_ROLE_TYPE_ADMIN",
+                "USER_ROLE_TYPE_SALER",
+                "USER_ROLE_TYPE_COSTUMER"
+            ]
+        },
         "entity.State": {
             "type": "object",
             "properties": {
@@ -825,9 +1134,6 @@ const docTemplate = `{
                 },
                 "deleted_at": {
                     "type": "string"
-                },
-                "external_id": {
-                    "type": "integer"
                 },
                 "id": {
                     "type": "string"
@@ -861,9 +1167,6 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "number": {
-                    "type": "string"
-                },
                 "updated_at": {
                     "type": "string"
                 },
@@ -876,9 +1179,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "birth_date": {
-                    "type": "string"
-                },
-                "cpf": {
                     "type": "string"
                 },
                 "created_at": {
@@ -905,34 +1205,14 @@ const docTemplate = `{
                 "phone_number": {
                     "type": "string"
                 },
+                "role": {
+                    "$ref": "#/definitions/entity.RoleType"
+                },
                 "updated_at": {
                     "type": "string"
                 },
                 "username": {
                     "type": "string"
-                }
-            }
-        },
-        "entity.UserAddress": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "deleted_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "street": {
-                    "$ref": "#/definitions/entity.Street"
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "user": {
-                    "$ref": "#/definitions/entity.User"
                 }
             }
         },

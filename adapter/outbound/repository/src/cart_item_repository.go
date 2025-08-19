@@ -14,37 +14,37 @@ import (
 	"go.uber.org/zap"
 )
 
-var UserOrdersModule = fx.Module(
-	"user_orders_repository",
-	fx.Provide(NewUserOrdersRepositorySrc),
-	fx.Provide(func(p *UserOrdersRepositorySrc) repository.UserOrdersRepository { return p }),
+var CartItemModule = fx.Module(
+	"address_repository",
+	fx.Provide(NewCartItemRepositorySrc),
+	fx.Provide(func(p *CartItemRepositorySrc) repository.CartItemRepository { return p }),
 )
 
-type UserOrdersRepositorySrc struct {
+type CartItemRepositorySrc struct {
 	pg     *postgres.Postgres
 	logger *zap.SugaredLogger
 }
 
-func NewUserOrdersRepositorySrc(
+func NewCartItemRepositorySrc(
 	pg *postgres.Postgres,
 	logger *zap.SugaredLogger,
-) (*UserOrdersRepositorySrc, error) {
-	return &UserOrdersRepositorySrc{
+) (*CartItemRepositorySrc, error) {
+	return &CartItemRepositorySrc{
 		pg:     pg,
 		logger: logger,
 	}, nil
 }
 
-func (r *UserOrdersRepositorySrc) Create(ctx context.Context, userOrders *entity.UserOrders) error {
-	err := r.pg.Db.WithContext(ctx).Create(userOrders).Error
+func (r *CartItemRepositorySrc) Create(ctx context.Context, cartItem *entity.CartItem) error {
+	err := r.pg.Db.WithContext(ctx).Create(cartItem).Error
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *UserOrdersRepositorySrc) Get(ctx context.Context, query *dto.GormQuery) (*[]entity.UserOrders, error) {
-	var items []entity.UserOrders
+func (r *CartItemRepositorySrc) Get(ctx context.Context, query *dto.GormQuery) (*[]entity.CartItem, error) {
+	var items []entity.CartItem
 	gormDB := QueryConstructor(r.pg.Db, query)
 	result := gormDB.WithContext(ctx).Find(&items)
 	if result.Error != nil {
@@ -57,8 +57,8 @@ func (r *UserOrdersRepositorySrc) Get(ctx context.Context, query *dto.GormQuery)
 	return &items, nil
 }
 
-func (r *UserOrdersRepositorySrc) Find(ctx context.Context, query *dto.GormQuery) (*entity.UserOrders, error) {
-	var items entity.UserOrders
+func (r *CartItemRepositorySrc) Find(ctx context.Context, query *dto.GormQuery) (*entity.CartItem, error) {
+	var items entity.CartItem
 	gormDB := QueryConstructor(r.pg.Db, query)
 	result := gormDB.WithContext(ctx).Find(&items)
 	if result.Error != nil {
@@ -76,16 +76,16 @@ func (r *UserOrdersRepositorySrc) Find(ctx context.Context, query *dto.GormQuery
 	return &items, nil
 }
 
-func (r *UserOrdersRepositorySrc) Save(ctx context.Context, userOrders *entity.UserOrders) error {
-	result := r.pg.Db.WithContext(ctx).Save(userOrders)
+func (r *CartItemRepositorySrc) Save(ctx context.Context, cartItem *entity.CartItem) error {
+	result := r.pg.Db.WithContext(ctx).Save(cartItem)
 	if result.Error != nil {
 		return result.Error
 	}
 	return nil
 }
 
-func (r *UserOrdersRepositorySrc) Delete(ctx context.Context, query *dto.GormQuery) error {
-	var item entity.UserOrders
+func (r *CartItemRepositorySrc) Delete(ctx context.Context, query *dto.GormQuery) error {
+	var item entity.CartItem
 	gormDB := QueryConstructor(r.pg.Db, query)
 	result := gormDB.WithContext(ctx).Delete(&item)
 	if result.Error != nil {

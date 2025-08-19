@@ -18,14 +18,12 @@ type Street struct {
 	DistrictID *string   `json:"-" valid:"-"`
 	District   *District `json:"district" valid:"-"`
 	ZipCode    *string   `json:"zip_code" valid:"-"`
-	Number     *string   `json:"number" valid:"-"`
 }
 
-func NewStreet(name, zipCode, number *string, district *District) (*Street, error) {
+func NewStreet(name, zipCode *string, district *District) (*Street, error) {
 	street := &Street{
 		Name:       name,
 		ZipCode:    zipCode,
-		Number:     number,
 		DistrictID: district.ID,
 		District:   district,
 	}

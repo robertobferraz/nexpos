@@ -13,7 +13,12 @@ import (
 )
 
 func init() {
-	govalidator.SetFieldsRequiredByDefault(true)
+	govalidator.TagMap["roleType"] = govalidator.Validator(func(str string) bool {
+		res := str == USER_ROLE_TYPE_ADMIN.String()
+		res = res || str == USER_ROLE_TYPE_SALER.String()
+		res = res || str == USER_ROLE_TYPE_COSTUMER.String()
+		return res
+	})
 
 	govalidator.TagMap["password_strength"] = govalidator.Validator(func(str string) bool {
 		return len(str) >= 8 && regexp.MustCompile(`[A-Za-z]`).MatchString(str) && regexp.MustCompile(`[0-9]`).MatchString(str)
@@ -22,6 +27,33 @@ func init() {
 	govalidator.TagMap["phone"] = govalidator.Validator(func(str string) bool {
 		return regexp.MustCompile(`^\+?[1-9]\d{1,14}$`).MatchString(str)
 	})
+
+	govalidator.SetFieldsRequiredByDefault(true)
+}
+
+type RoleType int
+
+const (
+	USER_ROLE_TYPE_ADMIN RoleType = iota
+	USER_ROLE_TYPE_SALER
+	USER_ROLE_TYPE_COSTUMER
+)
+
+func newRoleType[T RoleType | int](roleType T) *RoleType {
+	v := (RoleType)(roleType)
+	return &v
+}
+
+func (r RoleType) String() string {
+	switch r {
+	case USER_ROLE_TYPE_ADMIN:
+		return "admin"
+	case USER_ROLE_TYPE_SALER:
+		return "saler"
+	case USER_ROLE_TYPE_COSTUMER:
+		return "costumer"
+	}
+	return ""
 }
 
 type User struct {
@@ -33,7 +65,7 @@ type User struct {
 	ImageID     *string    `json:"-" valid:"-"`
 	Image       *Image     `json:"image" valid:"-"`
 	BirthDate   *time.Time `json:"birth_date" valid:"-"`
-	Cpf         *string    `json:"cpf" valid:"-"`
+	Role        *RoleType  `json:"role" valid:"-"`
 	ExternalID  *string    `json:"external_id" valid:"-"`
 }
 
@@ -70,10 +102,10 @@ func NewUser(name, username, email, cpf, phoneNumber, birthdate, externalID *str
 		Username:    username,
 		Email:       email,
 		BirthDate:   date,
-		Cpf:         cpf,
 		ImageID:     imageID,
 		Image:       image,
 		PhoneNumber: phoneNumber,
+		Role:        newRoleType(USER_ROLE_TYPE_COSTUMER),
 		ExternalID:  externalID,
 	}
 
