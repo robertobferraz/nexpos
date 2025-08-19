@@ -5,6 +5,7 @@ ENV PATH="/go/bin:${PATH}"
 ENV GO111MODULE=on
 ENV CGO_ENABLED=1
 
+RUN curl -sSL https://sdk.cloud.google.com > /tmp/gcl && bash /tmp/gcl --install-dir=~/gcloud --disable-prompts
 RUN set -ex && \
     apt-get update && \
     apt-get install -y build-essential protobuf-compiler librdkafka-dev && \

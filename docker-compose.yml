@@ -8,6 +8,7 @@ services:
     restart: always
     environment:
       ENV: develop
+      GOOGLE_APPLICATION_CREDENTIALS: credentials.json
     ports:
       - $HTTP_PORT:$HTTP_PORT
     volumes:

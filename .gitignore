@@ -12,6 +12,7 @@
 tmp/
 script/
 .idea
+credentials.json
 
 allCountries.txt
 .env
