@@ -32,7 +32,9 @@
 ## 📖 Introduction
 
 **NexPOS** is an open-source Point-of-Sale (POS) system designed to manage online sales, inventory, and customer interactions. 
-Built with a focus on **scalability**, **security**, and **clean architecture practices**, it provides a robust foundation for e-commerce solutions. Whether you're running a small store or a large retail operation, NexPOS offers tools for order processing, user management, and real-time reporting.
+Built with a focus on **scalability**, **security**, and **clean architecture practices**, it provides a robust foundation for e-commerce solutions. 
+Whether you're running a small store or a large retail operation, NexPOS offers tools for order processing, user management, and real-time reporting.
+
 ---
 
 
